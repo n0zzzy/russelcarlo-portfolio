@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Case study: Kiro SDLC Agent Harness — Russel Carlo</title>
+  <meta name="description" content="How one orchestrator and seven permission-bounded AI agents took a plain-English request to a live AWS app: 32 resources applied, all smoke tests passing, behind a human approval gate." />
+  <meta property="og:title" content="Case study: Kiro SDLC Agent Harness" />
+  <meta property="og:description" content="1 orchestrator + 7 specialist agents · plain-English request → live AWS app · human-gated deploy." />
+  <meta property="og:image" content="https://russelcarlo.vercel.app/assets/og.png" />
+  <link rel="canonical" href="https://russelcarlo.vercel.app/kiro-harness" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // apply saved theme before paint to avoid a flash
+    (function () {
+      var t = localStorage.getItem("theme") || "system";
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+</head>
+<body class="case">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav is-scrolled">
+    <div class="wrap nav__inner">
+      <a class="brand" href="/" aria-label="Back to russelcarlo.vercel.app">
+        <img class="brand__mark" src="assets/favicon.svg" alt="" />
+        <span>n0zzzy</span>
+      </a>
+      <div class="nav__actions">
+        <a class="btn btn--small btn--ghost" href="/#work">← All work</a>
+        <a class="btn btn--small btn--primary" href="https://github.com/n0zzzy/kiro-sdlc-agent-harness">View repo ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="case__hero">
+      <div class="wrap">
+        <p class="kicker">~/work/kiro-sdlc-agent-harness</p>
+        <h1>Seven AI agents, one orchestrator, <span class="accent">and a human who says when to ship.</span></h1>
+        <p class="lede">A multi-agent system that takes a plain-English business request through requirements, design, build, test, security review, and deployment on AWS, with each agent locked to its own lane.</p>
+        <ul class="case__facts">
+          <li><b>8</b><span>agents (1 orchestrator + 7 specialists)</span></li>
+          <li><b>32</b><span>AWS resources applied by Terraform</span></li>
+          <li><b>100%</b><span>live smoke tests passed</span></li>
+          <li><b>~$0</b><span>cost at idle (serverless)</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section case__body">
+      <div class="wrap case__grid">
+        <aside class="case__toc">
+          <p class="kicker">contents</p>
+          <a href="#problem">01 · The problem</a>
+          <a href="#idea">02 · The key idea</a>
+          <a href="#architecture">03 · Architecture</a>
+          <a href="#cast">04 · The cast</a>
+          <a href="#gates">05 · Gates &amp; the human</a>
+          <a href="#result">06 · The result</a>
+          <a href="#lessons">07 · What I took away</a>
+        </aside>
+
+        <article class="prose">
+          <h2 id="problem">The problem</h2>
+          <p>Letting one AI agent "build an app" usually fails the same way: it writes everything, nobody can audit it, and it will happily deploy something that was never tested or reviewed. Real teams avoid that with roles, ownership, and sign-offs. I wanted the same discipline for agents.</p>
+
+          <h2 id="idea">The key idea: permission boundaries</h2>
+          <p>Every specialist can only write to its own area. The frontend agent can touch <code>frontend/</code> but is denied <code>backend/</code>, <code>terraform/</code>, and the design docs. The orchestrator can't write code at all. It only delegates, tracks state, checks gates, and routes failures back to whoever owns the fix.</p>
+          <p>That one constraint turns a chaotic agent into something that behaves like a team with clear ownership, and it makes the whole run auditable after the fact.</p>
+
+          <h2 id="architecture">Architecture</h2>
+          <figure class="case__fig">
+            <img src="https://raw.githubusercontent.com/n0zzzy/kiro-sdlc-agent-harness/main/docs/architecture.svg" alt="Kiro SDLC harness architecture: intake, orchestrator, define, build, validate, ship with a human gate" width="1000" height="780" loading="lazy" decoding="async" />
+          </figure>
+
+          <h2 id="cast">The cast</h2>
+          <table class="roles case__table">
+            <thead><tr><th>Agent</th><th>Owns</th></tr></thead>
+            <tbody>
+              <tr><td>orchestrator</td><td>nothing (read + delegate only)</td></tr>
+              <tr><td>business-analyst</td><td><code>docs/requirements.md</code></td></tr>
+              <tr><td>solution-architect</td><td>architecture, API contract, data model</td></tr>
+              <tr><td>frontend-developer</td><td><code>frontend/</code></td></tr>
+              <tr><td>backend-developer</td><td><code>backend/</code>, <code>tests/</code></td></tr>
+              <tr><td>devops-engineer</td><td><code>terraform/</code>, deployment docs</td></tr>
+              <tr><td>qa-engineer</td><td>QA report, <code>tests/qa/</code></td></tr>
+              <tr><td>security-reviewer</td><td>security report</td></tr>
+            </tbody>
+          </table>
+
+          <h2 id="gates">Gates and the human in the loop</h2>
+          <ol class="case__steps">
+            <li><b>Requirements</b> → gate: <code>BA_STATUS: PASS</code></li>
+            <li><b>Design</b> → gate: <code>ARCH_STATUS: PASS</code></li>
+            <li><b>Build</b> → frontend, backend, and infra in parallel</li>
+            <li><b>Validate</b> → QA and security in parallel, both must pass</li>
+            <li><b>Plan</b> → <code>terraform plan</code>, then the agents stop</li>
+            <li class="is-human"><b>👤 Human gate</b> → nothing deploys until I type <code>APPROVE DEPLOY</code></li>
+            <li><b>Deploy &amp; verify</b> → <code>terraform apply</code> and live smoke tests</li>
+          </ol>
+          <p>On any <code>FAIL</code>, the orchestrator sends the work back to the responsible agent and re-runs validation. A human is asked only twice: when requirements need clarification, and before deploy.</p>
+
+          <h2 id="result">The result</h2>
+          <p>From one Markdown business request, the harness designed, built, tested, reviewed, and deployed a <b>Workshop Feedback Portal</b>, a fully serverless AWS app:</p>
+          <ul>
+            <li>One CloudFront distribution serves both the private S3 frontend and the <code>/api/*</code> routes, so there's no CORS and S3 stays private.</li>
+            <li>API Gateway → Lambda (Python) → on-demand DynamoDB, with server-side validation.</li>
+            <li>Least-privilege IAM: the Lambda can only <code>PutItem</code> and <code>Scan</code> one table.</li>
+            <li>No embedded secrets, fully disposable with <code>terraform destroy</code>.</li>
+          </ul>
+          <p><b>Delivery:</b> 32 resources applied (0 changed, 0 destroyed) and every live smoke test passed: frontend reachable, health OK, valid submission stored, invalid rating rejected, organizer retrieval correct.</p>
+
+          <h2 id="lessons">What I took away</h2>
+          <ul>
+            <li><b>Constraints beat prompts.</b> Permission boundaries did more for quality than any clever instruction.</li>
+            <li><b>Make every step leave a paper trail.</b> Each agent ends with a status signal, so failures are easy to trace.</li>
+            <li><b>Put the human where the risk is.</b> Two touchpoints, not twenty, keeps the speed without losing control.</li>
+          </ul>
+
+          <div class="case__cta">
+            <a class="btn btn--primary" href="https://github.com/n0zzzy/kiro-sdlc-agent-harness">Explore the repo ↗</a>
+            <a class="btn btn--ghost" href="/#agentic">Try the harness demo</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <span>© 2026 Russel Carlo · <i>“I have no enemies.”</i></span>
+      <a href="/">← back to russelcarlo.vercel.app</a>
+    </div>
+  </footer>
+</body>
+</html>

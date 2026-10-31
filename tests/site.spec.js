@@ -133,3 +133,32 @@ test("how-i-work section tells the story", async ({ page }) => {
   await expect(page.locator("#how h2")).toContainText("not the fastest coder");
   await expect(page.locator(".pillar")).toHaveCount(6);
 });
+
+test("flagship card opens the Kiro case study", async ({ page }) => {
+  await page.goto("/#work");
+  await page.locator(".project.is-flagship").click();
+  await expect(page).toHaveURL(/kiro-harness/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Seven AI agents");
+  await expect(page.locator(".case__facts li")).toHaveCount(4);
+});
+
+test("content placeholders stay hidden live, visible in ?draft", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#logs")).toBeHidden();
+  await expect(page.locator("#uses")).toBeVisible();
+  await expect(page.locator("#uses-body")).not.toContainText("TODO");
+  await page.goto("/?draft");
+  await expect(page.locator("#logs")).toBeVisible();
+  await expect(page.locator("#reviews .draft").first()).toBeVisible();
+  await expect(page.locator("#uses-body")).toContainText("TODO");
+});
+
+test("sound is off by default and toggles on", async ({ page }) => {
+  await page.goto("/");
+  const btn = page.locator("#sound-btn");
+  await expect(btn).toHaveAttribute("aria-pressed", "false");
+  await btn.click();
+  await expect(btn).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(btn).toHaveAttribute("aria-pressed", "true");
+});

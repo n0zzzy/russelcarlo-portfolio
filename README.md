@@ -11,7 +11,7 @@ Static site with no build step (HTML, CSS, vanilla JS), harnessed like an agent:
 | Evals | Lighthouse budgets: perf ≥ 90, a11y / best practices / SEO ≥ 95 |
 | Human gate | Preview deploy on every push; production needs approval |
 
-Features: interactive agent-harness demo (8 scenarios + free-text router), `n0zzzy shell` (press <kbd>`</kbd>), a wolf that follows your cursor (click it to release it), system / light / dark themes, PWA manifest, strict security headers.
+Features: interactive agent-harness demo (8 scenarios + free-text router), a Kiro case study page, synthesized sound effects (off by default), content sections driven by `content.js` (preview drafts at `/?draft`), `n0zzzy shell` (press <kbd>`</kbd>), a wolf that follows your cursor (click it to release it), system / light / dark themes, PWA manifest, strict security headers.
 
 ```bash
 npm ci

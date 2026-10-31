@@ -8,7 +8,7 @@ const LI = "https://www.linkedin.com/feed/update/urn:li:activity:";
 /* ---------- data ---------- */
 const PROJECTS = [
   {
-    repo: "kiro-sdlc-agent-harness", kind: "Multi-agent · SDLC", cat: "agents", size: "flagship",
+    repo: "kiro-sdlc-agent-harness", kind: "Multi-agent · SDLC", cat: "agents", size: "flagship", caseStudy: "/kiro-harness",
     desc: "One orchestrator drives seven specialist AI agents through the full SDLC, from a plain-English business request to a live AWS app. Strict permission boundaries per agent and a human approval gate before anything deploys.",
     tags: ["Kiro", "Multi-agent", "Terraform", "AWS", "HITL"],
     img: "https://raw.githubusercontent.com/n0zzzy/kiro-sdlc-agent-harness/main/docs/architecture.svg",
@@ -308,6 +308,7 @@ async function runHarness(customText, routedAs) {
     li.classList.add("is-running");
     await sleep(700 * t);
     writeLog(sc.steps[name]);
+    sfx.play[sc.blocked || sc.fails?.includes(name) ? "bad" : "step"]();
     li.classList.remove("is-running");
     spans.push({ name, ms: sc.ms?.[name] ?? 300, cls: sc.fails?.includes(name) ? "fail" : "" });
     if (sc.blocked) {
@@ -326,12 +327,14 @@ async function runHarness(customText, routedAs) {
     li.classList.add("is-running");
     $("#approval-text").innerHTML = sc.approval;
     writeLog([["warn", "⏸ waiting for human approval…\n"]]);
+    sfx.play.wait();
     humanStart = performance.now();
     const decision = await waitForDecision();
     spans.push({ name: "human", ms: Math.round(performance.now() - humanStart), cls: "wait" });
     li.classList.remove("is-running");
     li.classList.add(decision === "approve" ? "is-done" : "is-blocked");
     writeLog(decision === "approve" ? sc.approved : sc.rejected);
+    sfx.play[decision === "approve" ? "ok" : "bad"]();
   }
 
   const ev = stepEl("eval");
@@ -343,6 +346,7 @@ async function runHarness(customText, routedAs) {
   spans.push({ name: "eval", ms: sc.ms?.eval ?? 350, cls: "ok" });
   writeLog([["ok", "✓ run complete · trace saved\n"]]);
   renderTrace(spans);
+  sfx.play.ok();
   $("#run-btn").disabled = false;
   running = false;
 }
@@ -374,14 +378,14 @@ $("#custom-form").addEventListener("submit", (e) => {
 /* ---------- projects ---------- */
 function renderProjects() {
   $("#bento").innerHTML = PROJECTS.map((p) => `
-    <a class="project reveal ${p.size === "flagship" ? "is-flagship" : ""} ${p.size === "wide" ? "is-wide" : ""}" href="${p.live || GH + p.repo}" data-cat="${p.cat}">
+    <a class="project reveal ${p.size === "flagship" ? "is-flagship" : ""} ${p.size === "wide" ? "is-wide" : ""}" href="${p.caseStudy || p.live || GH + p.repo}" data-cat="${p.cat}">
       ${p.size === "flagship" ? '<span class="project__badge">★ FLAGSHIP</span>' : ""}
       <span class="project__arrow" aria-hidden="true">↗</span>
       <p class="project__kind">${p.kind}</p>
       <h3>${p.repo}</h3>
       <p>${p.desc}</p>
       ${p.img ? `<div class="project__img"><img src="${p.img}" alt="${p.repo} architecture diagram" width="1000" height="780" loading="lazy" decoding="async" /></div>` : ""}
-      <div class="project__tags">${p.tags.map((t) => `<span>${t}</span>`).join("")}${p.live ? "<span>live ↗</span>" : ""}</div>
+      <div class="project__tags">${p.tags.map((t) => `<span>${t}</span>`).join("")}${p.live ? "<span>live ↗</span>" : ""}${p.caseStudy ? '<span class="tag--hot">read case study →</span>' : ""}</div>
     </a>`).join("");
 }
 $$(".filters .chip").forEach((chip) => {
@@ -478,6 +482,7 @@ const SH = {
   },
   release: { desc: "let the wolf out", run: () => { closeSh(); hunter.release(); return ""; } },
   recall: { desc: "call the wolf back", run: () => { hunter.recall(); return "the wolf returns to the moon"; } },
+  sound: { desc: "sound on | off", run: (arg) => { sfx.set(arg !== "off"); return `<span class="g">✓</span> sound ${sfx.on ? "on" : "off"}`; } },
   email: { desc: "copy my email", run: () => { copyEmail(); return `<span class="g">✓</span> copied manzoncarlo345@gmail.com`; } },
   clear: { desc: "clear the screen", run: () => { $("#sh-out").innerHTML = ""; return null; } },
   exit: { desc: "close the terminal", run: () => { closeSh(); return null; } },
@@ -521,6 +526,7 @@ $("#sh-open").addEventListener("click", openSh);
 $("#sh").addEventListener("click", (e) => { if (e.target.dataset.close !== undefined) closeSh(); });
 $("#sh-input").addEventListener("keydown", (e) => {
   const input = e.target;
+  if (e.key.length === 1) sfx.play.key();
   if (e.key === "Enter") { shExec(input.value); input.value = ""; }
   else if (e.key === "ArrowUp") { e.preventDefault(); shPos = Math.max(0, shPos - 1); input.value = shHistory[shPos] || ""; }
   else if (e.key === "ArrowDown") { e.preventDefault(); shPos = Math.min(shHistory.length, shPos + 1); input.value = shHistory[shPos] || ""; }
@@ -734,6 +740,7 @@ const hunter = (() => {
   function dash(to, ms = 190) {
     return new Promise((done) => {
       const from = { ...pos };
+      sfx.play.whoosh();
       face = to.x > from.x ? -1 : 1; // silhouette faces left by default
       const t0 = performance.now();
       let lastGhost = 0;
@@ -787,6 +794,7 @@ const hunter = (() => {
     place();
     puff(pos.x, pos.y);
     toast("🐺 The wolf is loose. Click it or press Esc to call it back.");
+    sfx.play.howl();
     hunt();
   }
 
@@ -809,7 +817,127 @@ const hunter = (() => {
   return { release, recall, get active() { return active; } };
 })();
 
+/* ---------- sound: synthesized with Web Audio, no audio files, off by default ---------- */
+const sfx = (() => {
+  let ctx = null;
+  let on = localStorage.getItem("sound") === "on";
+  const audio = () => (ctx ||= new (window.AudioContext || window.webkitAudioContext)());
+
+  function tone({ freq = 440, to = freq, dur = 0.12, type = "sine", gain = 0.08, delay = 0, vibrato = 0 }) {
+    if (!on) return;
+    const a = audio();
+    const t = a.currentTime + delay;
+    const osc = a.createOscillator();
+    const amp = a.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1, to), t + dur);
+    if (vibrato) {
+      const lfo = a.createOscillator();
+      const depth = a.createGain();
+      lfo.frequency.value = 5.5;
+      depth.gain.value = vibrato;
+      lfo.connect(depth).connect(osc.frequency);
+      lfo.start(t);
+      lfo.stop(t + dur);
+    }
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.exponentialRampToValueAtTime(gain, t + Math.min(0.03, dur / 4));
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(amp).connect(a.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  }
+
+  function noise({ dur = 0.08, gain = 0.05, freq = 1800 }) {
+    if (!on) return;
+    const a = audio();
+    const buf = a.createBuffer(1, Math.ceil(a.sampleRate * dur), a.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const src = a.createBufferSource();
+    const filter = a.createBiquadFilter();
+    const amp = a.createGain();
+    src.buffer = buf;
+    filter.type = "bandpass";
+    filter.frequency.value = freq;
+    amp.gain.value = gain;
+    src.connect(filter).connect(amp).connect(a.destination);
+    src.start();
+  }
+
+  const play = {
+    tick: () => tone({ freq: 1800, to: 1200, dur: 0.03, type: "square", gain: 0.02 }),
+    key: () => noise({ dur: 0.025, gain: 0.03, freq: 3200 }),
+    step: () => tone({ freq: 660, to: 880, dur: 0.08, type: "triangle", gain: 0.04 }),
+    wait: () => { tone({ freq: 520, dur: 0.12, gain: 0.05 }); tone({ freq: 520, dur: 0.12, gain: 0.05, delay: 0.18 }); },
+    ok: () => { tone({ freq: 660, dur: 0.12, type: "triangle", gain: 0.06 }); tone({ freq: 990, dur: 0.2, type: "triangle", gain: 0.06, delay: 0.1 }); },
+    bad: () => tone({ freq: 160, to: 90, dur: 0.28, type: "sawtooth", gain: 0.05 }),
+    whoosh: () => noise({ dur: 0.18, gain: 0.05, freq: 900 }),
+    howl: () => {
+      tone({ freq: 330, to: 620, dur: 0.6, type: "sawtooth", gain: 0.035, vibrato: 6 });
+      tone({ freq: 620, to: 520, dur: 1.1, type: "sawtooth", gain: 0.035, delay: 0.55, vibrato: 9 });
+      tone({ freq: 660, to: 1240, dur: 0.6, type: "sine", gain: 0.02, vibrato: 6 });
+    },
+  };
+
+  function set(value) {
+    on = value;
+    localStorage.setItem("sound", on ? "on" : "off");
+    const btn = $("#sound-btn");
+    btn.setAttribute("aria-pressed", String(on));
+    btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
+    if (on) { audio().resume(); play.ok(); }
+  }
+
+  $("#sound-btn").addEventListener("click", () => { set(!on); toast(on ? "🔊 Sound on" : "🔇 Sound off"); });
+  // subtle UI ticks on interactive elements
+  document.addEventListener("click", (e) => { if (e.target.closest(".chip, .btn, .nav__links a, .icon-btn:not(#sound-btn)")) play.tick(); });
+  set(on);
+  return { play, set, get on() { return on; } };
+})();
+
+/* ---------- content.js sections (logs, history, reviews, network, uses) ---------- */
+function renderContent() {
+  const C = window.CONTENT || {};
+  const draft = new URLSearchParams(location.search).has("draft");
+  const visible = (list) => (list || []).filter((x) => draft || !x.placeholder);
+  const badge = (x) => (x.placeholder ? '<span class="draft">DRAFT</span>' : "");
+  const show = (id, items, html) => {
+    const section = document.getElementById(id);
+    if (!section || !items.length) return;
+    section.hidden = false;
+    $(`#${id}-list`).innerHTML = items.map(html).join("");
+  };
+
+  show("history", visible(C.history), (h, i) => `
+    <li><span class="gitlog__sha">${(0xa1f3c + i * 7919).toString(16).slice(0, 7)}</span>
+      <div><b>${esc(h.role)}</b> <span class="gitlog__org">@ ${esc(h.org)}</span> ${badge(h)}<p>${esc(h.note)}</p></div>
+      <time>${esc(h.when)}</time></li>`);
+
+  show("logs", visible(C.logs), (l) => `
+    <a class="log" href="${esc(l.url)}"><time>${esc(l.date)}</time>${badge(l)}<h3>${esc(l.title)}</h3><p>${esc(l.excerpt)}</p>
+      <div class="project__tags">${(l.tags || []).map((t) => `<span>${esc(t)}</span>`).join("")}</div></a>`);
+
+  show("reviews", visible(C.reviews), (r) => `
+    <figure class="review"><div class="review__head"><span class="review__ok">✓</span><b>${esc(r.name)}</b> approved these changes ${badge(r)}</div>
+      <blockquote>“${esc(r.quote)}”</blockquote><figcaption>${esc(r.title)}</figcaption></figure>`);
+
+  show("network", visible(C.network), (n) => `
+    <a class="node" href="${esc(n.url)}"><span class="node__dot"></span><b>${esc(n.name)}</b><small>${esc(n.role)}</small>${badge(n)}</a>`);
+
+  const uses = Object.entries(C.uses || {})
+    .map(([k, v]) => [k, v.filter((x) => draft || !/^TODO/i.test(x))])
+    .filter(([, v]) => v.length);
+  if (uses.length) {
+    $("#uses").hidden = false;
+    $("#uses-body").innerHTML = uses.map(([k, v]) => `<span class="k">${esc(k)}</span>:\n${v.map((x) => `  - <span class="${/^TODO/i.test(x) ? "todo" : "v"}">${esc(x)}</span>`).join("\n")}`).join("\n");
+  }
+  if (draft) toast("✏️ Draft mode: placeholders are visible. Edit content.js to fill them in.");
+}
+
 /* ---------- init ---------- */
+renderContent();
 wolfRig();
 draggableTerm();
 ghStatus();
