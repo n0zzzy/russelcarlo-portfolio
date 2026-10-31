@@ -1,0 +1,17 @@
+{
+  "name": "russelcarlo-portfolio",
+  "private": true,
+  "scripts": {
+    "validate": "html-validate index.html 404.html",
+    "test:e2e": "playwright test",
+    "serve": "serve -l 4173 .",
+    "check:csp": "node scripts/check-csp.mjs",
+    "test": "npm run validate && npm run check:csp && npm run test:e2e",
+    "fix:csp": "node scripts/check-csp.mjs --write"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "html-validate": "^11.17.0",
+    "serve": "^14.2.6"
+  }
+}

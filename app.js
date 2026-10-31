@@ -184,6 +184,72 @@ const SCENARIOS = {
     fails: ["tools"],
   },
 };
+Object.assign(SCENARIOS, {
+  memory: {
+    prompt: "“Same size and color as my last order, please.”",
+    noHuman: "repeat order under ₱5,000 → auto-approved by policy\n",
+    steps: {
+      guard: [["", "scan input for injection & PII ... "], ["ok", "clean\n"]],
+      plan: [["", "orchestrator → "], ["tx", "memory agent, order agent\n"]],
+      tools: [["", "memory.recall(user) ... "], ["tx", "size M · black · 3 weeks ago\n"], ["", "order.create(M, black) ... "], ["ok", "#5520 placed\n"], ["", "memory.write ...... "], ["tx", "prefers black, size M\n"]],
+    },
+    score: 0.93,
+    ms: { guard: 40, plan: 190, tools: 860, eval: 300 },
+  },
+  pii: {
+    prompt: "“My card is 4111 1111 1111 1234, why was I charged twice?”",
+    approval: "Reverse the duplicate charge of <code>₱1,299</code> on card <code>****1234</code>?",
+    steps: {
+      guard: [["", "scan input for injection & PII ... "], ["warn", "card number found\n"], ["tx", "→ redacted before the model sees it: ****1234\n"]],
+      plan: [["", "orchestrator → "], ["tx", "billing agent (sees ****1234 only)\n"]],
+      tools: [["", "billing.lookup(****1234) ... "], ["tx", "2 charges · same order · 41s apart\n"]],
+    },
+    approved: [["ok", "✓ approved · duplicate reversed · receipt emailed\n"]],
+    rejected: [["warn", "✗ rejected · ticket routed to the billing team\n"]],
+    score: 0.95,
+    ms: { guard: 64, plan: 230, tools: 640, eval: 340 },
+  },
+  parallel: {
+    prompt: "“Plan a 3-day Siargao trip under ₱15,000.”",
+    noHuman: "draft only, no money moved → no approval needed\n",
+    steps: {
+      guard: [["", "scan input for injection & PII ... "], ["ok", "clean\n"]],
+      plan: [["", "orchestrator → fan-out "], ["tx", "flights ∥ weather ∥ stays\n"]],
+      tools: [["", "  ├ flights ....... "], ["tx", "₱5,980 round trip (820ms)\n"], ["", "  ├ weather ....... "], ["tx", "sunny, waves 1.2m (410ms)\n"], ["", "  └ stays ......... "], ["tx", "₱2,100/night (960ms)\n"], ["", "fan-in → itinerary "], ["ok", "₱13,850 total ✓ under budget\n"]],
+    },
+    score: 0.9,
+    ms: { guard: 38, plan: 240, tools: 960, eval: 380 },
+  },
+  budget: {
+    prompt: "“Summarize every support ticket from this year.”",
+    noHuman: "read-only analysis → no approval needed\n",
+    steps: {
+      guard: [["", "scan input for injection & PII ... "], ["ok", "clean\n"]],
+      plan: [["", "estimate ........ "], ["bad", "4,012 tickets ≈ 2.1M tokens > 500k budget\n"]],
+      tools: [["warn", "↳ new plan: sample 400 + cluster by topic\n"], ["", "map (Haiku) ..... "], ["tx", "12 clusters\n"], ["", "reduce (Sonnet) .. "], ["ok", "summary ready · 172k tokens\n"]],
+    },
+    score: 0.87,
+    ms: { guard: 37, plan: 120, tools: 2240, eval: 360 },
+    fails: ["plan"],
+  },
+});
+
+// free-text requests are routed by a tiny keyword classifier, like a router agent would
+const ROUTES = [
+  ["inject", /ignore|system prompt|jailbreak|pretend|reveal|instructions/i],
+  ["pii", /\d{4}[\s-]?\d{4}[\s-]?\d{4}|card|password|ssn|charged twice/i],
+  ["refund", /refund|return|broken|damaged|money back/i],
+  ["deploy", /deploy|release|ship|hotfix|rollback|prod/i],
+  ["memory", /last (time|order)|same as|remember|again|usual/i],
+  ["parallel", /trip|plan|itinerary|compare|research|travel/i],
+  ["budget", /summari[sz]e|every|all .*tickets|analy[sz]e|report/i],
+  ["fallback", /where|status|track|order/i],
+];
+function routeRequest(text) {
+  const hit = ROUTES.find(([, re]) => re.test(text));
+  return hit ? hit[0] : "parallel";
+}
+
 SCENARIOS.deploy.ms = { guard: 42, plan: 380, tools: 1540, human: 0, eval: 410 };
 SCENARIOS.refund.ms = { guard: 39, plan: 260, tools: 720, human: 0, eval: 360 };
 let scenario = "deploy";
@@ -222,7 +288,7 @@ function renderTrace(spans) {
   $("#trace").hidden = false;
 }
 
-async function runHarness() {
+async function runHarness(customText, routedAs) {
   if (running) return;
   running = true;
   const sc = SCENARIOS[scenario];
@@ -231,6 +297,7 @@ async function runHarness() {
   $("#console-log").innerHTML = "";
   resetPipeline();
   writeLog([["tx", `$ agent run --scenario ${scenario}\n`]]);
+  if (typeof customText === "string") writeLog([["", "router → classified as "], ["tx", `${routedAs}\n`]]);
   $("#trace").hidden = true;
   const spans = [];
   let humanStart = 0;
@@ -294,6 +361,15 @@ $$(".harness__scenarios .chip").forEach((chip) => {
   });
 });
 $("#run-btn").addEventListener("click", runHarness);
+$("#custom-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = $("#custom-input").value.trim();
+  if (!text || running) return;
+  const name = routeRequest(text);
+  $(`.harness__scenarios [data-scenario="${name}"]`).click();
+  $("#scenario-prompt").textContent = `“${text}”`;
+  runHarness(text, name);
+});
 
 /* ---------- projects ---------- */
 function renderProjects() {
@@ -304,7 +380,7 @@ function renderProjects() {
       <p class="project__kind">${p.kind}</p>
       <h3>${p.repo}</h3>
       <p>${p.desc}</p>
-      ${p.img ? `<div class="project__img"><img src="${p.img}" alt="${p.repo} architecture diagram" loading="lazy" /></div>` : ""}
+      ${p.img ? `<div class="project__img"><img src="${p.img}" alt="${p.repo} architecture diagram" width="1000" height="780" loading="lazy" decoding="async" /></div>` : ""}
       <div class="project__tags">${p.tags.map((t) => `<span>${t}</span>`).join("")}${p.live ? "<span>live ↗</span>" : ""}</div>
     </a>`).join("");
 }
@@ -371,10 +447,10 @@ const SH = {
   wins: { desc: "track record", run: () => SH.ls.run("wins") },
   stack: { desc: "tools I use", run: () => SH.ls.run("stack") },
   run: {
-    desc: "run deploy | refund | inject | fallback",
+    desc: "run <scenario> · try: run pii",
     run: (arg) => {
       const name = arg && SCENARIOS[arg] ? arg : null;
-      if (!name) return `<span class="m">usage: run deploy | refund | inject | fallback</span>`;
+      if (!name) return `<span class="m">usage: run ${Object.keys(SCENARIOS).join(" | ")}</span>`;
       closeSh();
       $(`.harness__scenarios [data-scenario="${name}"]`).click();
       go("#agentic");
@@ -391,7 +467,7 @@ const SH = {
     },
   },
   cd: {
-    desc: "cd agentic | work | wins | stack | contact",
+    desc: "cd how | agentic | work | wins | stack | contact",
     run: (arg) => {
       const id = { "track-record": "wins" }[arg] || arg;
       if (!id || !document.getElementById(id)) return `<span class="m">usage: cd agentic | work | wins | stack | contact</span>`;
@@ -400,6 +476,8 @@ const SH = {
       return "";
     },
   },
+  release: { desc: "let the wolf out", run: () => { closeSh(); hunter.release(); return ""; } },
+  recall: { desc: "call the wolf back", run: () => { hunter.recall(); return "the wolf returns to the moon"; } },
   email: { desc: "copy my email", run: () => { copyEmail(); return `<span class="g">✓</span> copied manzoncarlo345@gmail.com`; } },
   clear: { desc: "clear the screen", run: () => { $("#sh-out").innerHTML = ""; return null; } },
   exit: { desc: "close the terminal", run: () => { closeSh(); return null; } },
@@ -475,7 +553,7 @@ async function copyEmail() {
 $("#copy-email").addEventListener("click", copyEmail);
 
 /* ---------- nav state & reveal ---------- */
-addEventListener("scroll", () => $(".nav").classList.toggle("is-scrolled", scrollY > 8), { passive: true });
+addEventListener("scroll", () => $(".nav").classList.toggle("is-scrolled", scrollY > 40), { passive: true });
 const navLinks = $$(".nav__links a");
 const sectionObs = new IntersectionObserver((entries) => {
   entries.forEach((en) => {
@@ -545,7 +623,195 @@ $("#menu-btn").addEventListener("click", () => {
 });
 $$("#sheet a").forEach((a) => a.addEventListener("click", () => { $("#sheet").hidden = true; $("#menu-btn").setAttribute("aria-expanded", "false"); }));
 
+/* ---------- interactive wolf: same howling silhouette, head follows the cursor ---------- */
+function wolfRig() {
+  const svg = $("#wolf");
+  if (!svg) return;
+  const head = $(".w-head", svg);
+  const flip = $(".w-flip", svg);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const PIVOT = "94 98"; // neck joint, in wolf-path units
+  const cur = { angle: -12, face: 1 };
+  const goal = { angle: -12, face: 1 };
+  let idle = true;
+
+  function aim(nx, ny) {
+    // ny < 0: cursor above (howl) · ny > 0: cursor below (head down)
+    goal.angle = ny < 0 ? lerp(-12, 14, Math.min(1, -ny * 1.6)) : lerp(-12, -40, Math.min(1, ny * 1.4));
+    if (nx > 0.08) goal.face = -1;      // cursor on the right → turn around
+    else if (nx < -0.08) goal.face = 1; // cursor on the left → face left
+    svg.classList.toggle("pose-howl", ny < -0.35);
+    svg.classList.toggle("pose-low", ny > 0.4);
+  }
+
+  function frame() {
+    const k = reduceMotion ? 1 : 0.12;
+    cur.angle = lerp(cur.angle, goal.angle, k);
+    cur.face = lerp(cur.face, goal.face, reduceMotion ? 1 : 0.1);
+    head.setAttribute("transform", `rotate(${cur.angle.toFixed(2)} ${PIVOT})`);
+    // squash through 0 so the flip reads as the wolf turning around
+    const sx = Math.abs(cur.face) < 0.06 ? 0.06 * Math.sign(cur.face || 1) : cur.face;
+    flip.setAttribute("transform", `translate(200 0) scale(${sx.toFixed(3)} 1) translate(-200 0)`);
+    requestAnimationFrame(frame);
+  }
+
+  addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch") return;
+    idle = false;
+    const r = svg.getBoundingClientRect();
+    const cx = r.left + r.width * 0.5;
+    const cy = r.top + r.height * 0.4;
+    aim(clamp((e.clientX - cx) / (r.width * 0.9), -1, 1), clamp((e.clientY - cy) / (r.height * 0.9), -1, 1));
+  }, { passive: true });
+  document.documentElement.addEventListener("pointerleave", () => (idle = true));
+
+  if (!reduceMotion) {
+    let t = 0;
+    setInterval(() => {
+      if (!idle) return;
+      t += 1;
+      const script = [[-0.4, 0], [-0.4, -0.8], [-0.4, 0], [-0.4, 0.8], [0.5, 0], [0.5, -0.8], [-0.4, 0]];
+      aim(...script[t % script.length]);
+    }, 1800);
+  }
+  aim(-0.4, 0);
+  requestAnimationFrame(frame);
+}
+
+/* ---------- draggable agent.log ---------- */
+function draggableTerm() {
+  const term = $("#hero-term");
+  const bar = $(".term__bar", term);
+  let start = null;
+  bar.addEventListener("pointerdown", (e) => {
+    const r = term.getBoundingClientRect();
+    const parent = term.offsetParent.getBoundingClientRect();
+    start = { x: e.clientX, y: e.clientY, left: r.left - parent.left, top: r.top - parent.top };
+    term.classList.add("is-dragged", "is-dragging");
+    term.style.left = `${start.left}px`;
+    term.style.top = `${start.top}px`;
+    bar.setPointerCapture(e.pointerId);
+  });
+  bar.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    term.style.left = `${start.left + e.clientX - start.x}px`;
+    term.style.top = `${start.top + e.clientY - start.y}px`;
+  });
+  const end = () => { start = null; term.classList.remove("is-dragging"); };
+  bar.addEventListener("pointerup", end);
+  bar.addEventListener("pointercancel", end);
+}
+
+/* ---------- assassin wolf: leaves the moon and hunts the cursor ---------- */
+const hunter = (() => {
+  const el = $("#hunter");
+  const moonWolf = $("#wolf");
+  const pos = { x: 0, y: 0 };
+  const target = { x: innerWidth / 2, y: innerHeight / 2 };
+  let active = false;
+  let face = 1;
+  let timer;
+
+  const place = () => { el.style.transform = `translate(${pos.x - 32}px, ${pos.y - 40}px) scaleX(${face})`; };
+  const ghost = () => {
+    const g = document.createElement("div");
+    g.className = "ghost";
+    g.innerHTML = el.innerHTML;
+    g.style.transform = el.style.transform;
+    document.body.appendChild(g);
+    setTimeout(() => g.remove(), 460);
+  };
+  const puff = (x, y) => {
+    const p = document.createElement("div");
+    p.className = "puff";
+    p.style.left = `${x}px`;
+    p.style.top = `${y}px`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 520);
+  };
+
+  function dash(to, ms = 190) {
+    return new Promise((done) => {
+      const from = { ...pos };
+      face = to.x > from.x ? -1 : 1; // silhouette faces left by default
+      const t0 = performance.now();
+      let lastGhost = 0;
+      (function step(now) {
+        const p = Math.min(1, (now - t0) / ms);
+        const e = 1 - Math.pow(1 - p, 4);
+        pos.x = from.x + (to.x - from.x) * e;
+        pos.y = from.y + (to.y - from.y) * e;
+        place();
+        if (now - lastGhost > 22) { ghost(); lastGhost = now; }
+        if (p < 1) requestAnimationFrame(step); else done();
+      })(t0);
+    });
+  }
+
+  async function hunt() {
+    if (!active) return;
+    el.classList.add("is-stalking");
+    const dist = Math.hypot(target.x - pos.x, target.y - pos.y);
+    if (dist > 70) {
+      el.classList.remove("is-stalking");
+      if (Math.random() < 0.25 && dist > 260) {
+        // vanish, then reappear behind the cursor
+        puff(pos.x, pos.y);
+        el.classList.add("is-vanished");
+        await sleep(220);
+        const side = target.x > innerWidth / 2 ? 1 : -1;
+        pos.x = target.x + side * 70;
+        pos.y = target.y + 10;
+        face = side > 0 ? 1 : -1;
+        place();
+        el.classList.remove("is-vanished");
+        puff(pos.x, pos.y);
+      } else {
+        const angle = Math.atan2(target.y - pos.y, target.x - pos.x);
+        await dash({ x: target.x - Math.cos(angle) * 56, y: target.y - Math.sin(angle) * 56 });
+      }
+    }
+    timer = setTimeout(hunt, 350 + Math.random() * 650);
+  }
+
+  function release() {
+    if (active) return;
+    if (reduceMotion) { toast("The wolf stays put (reduced motion is on)"); return; }
+    const r = moonWolf.getBoundingClientRect();
+    pos.x = r.left + r.width * 0.5;
+    pos.y = r.top + r.height * 0.35;
+    active = true;
+    moonWolf.classList.add("is-gone");
+    el.hidden = false;
+    place();
+    puff(pos.x, pos.y);
+    toast("🐺 The wolf is loose. Click it or press Esc to call it back.");
+    hunt();
+  }
+
+  async function recall() {
+    if (!active) return;
+    active = false;
+    clearTimeout(timer);
+    const r = moonWolf.getBoundingClientRect();
+    await dash({ x: r.left + r.width * 0.5, y: r.top + r.height * 0.35 }, 320);
+    puff(pos.x, pos.y);
+    el.hidden = true;
+    moonWolf.classList.remove("is-gone");
+  }
+
+  addEventListener("pointermove", (e) => { target.x = e.clientX; target.y = e.clientY; }, { passive: true });
+  addEventListener("pointerdown", (e) => { if (active && e.pointerType === "touch") { target.x = e.clientX; target.y = e.clientY; } });
+  $("#wolf-btn").addEventListener("click", release);
+  el.addEventListener("click", recall);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && active && $("#sh").hidden) recall(); });
+  return { release, recall, get active() { return active; } };
+})();
+
 /* ---------- init ---------- */
+wolfRig();
+draggableTerm();
 ghStatus();
 countUp();
 renderProjects();
