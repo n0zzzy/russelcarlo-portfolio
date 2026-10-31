@@ -483,6 +483,8 @@ const SH = {
   release: { desc: "let the wolf out", run: () => { closeSh(); hunter.release(); return ""; } },
   recall: { desc: "call the wolf back", run: () => { hunter.recall(); return "the wolf returns to the moon"; } },
   sound: { desc: "sound on | off", run: (arg) => { sfx.set(arg !== "off"); return `<span class="g">✓</span> sound ${sfx.on ? "on" : "off"}`; } },
+  tour: { desc: "take the guided tour", run: () => { closeSh(); tour.start(); return ""; } },
+  keys: { desc: "keyboard shortcuts", run: () => { closeSh(); toggleHelp(true); return ""; } },
   email: { desc: "copy my email", run: () => { copyEmail(); return `<span class="g">✓</span> copied manzoncarlo345@gmail.com`; } },
   clear: { desc: "clear the screen", run: () => { $("#sh-out").innerHTML = ""; return null; } },
   exit: { desc: "close the terminal", run: () => { closeSh(); return null; } },
@@ -821,7 +823,11 @@ const hunter = (() => {
 const sfx = (() => {
   let ctx = null;
   let on = localStorage.getItem("sound") === "on";
-  const audio = () => (ctx ||= new (window.AudioContext || window.webkitAudioContext)());
+  const audio = () => {
+    ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  };
 
   function tone({ freq = 440, to = freq, dur = 0.12, type = "sine", gain = 0.08, delay = 0, vibrato = 0 }) {
     if (!on) return;
@@ -881,19 +887,19 @@ const sfx = (() => {
     },
   };
 
-  function set(value) {
+  function set(value, silent = false) {
     on = value;
     localStorage.setItem("sound", on ? "on" : "off");
     const btn = $("#sound-btn");
     btn.setAttribute("aria-pressed", String(on));
     btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
-    if (on) { audio().resume(); play.ok(); }
+    if (on && !silent) { audio().resume(); play.ok(); }
   }
 
   $("#sound-btn").addEventListener("click", () => { set(!on); toast(on ? "🔊 Sound on" : "🔇 Sound off"); });
   // subtle UI ticks on interactive elements
   document.addEventListener("click", (e) => { if (e.target.closest(".chip, .btn, .nav__links a, .icon-btn:not(#sound-btn)")) play.tick(); });
-  set(on);
+  set(on, true); // restore the saved choice without making noise before a user gesture
   return { play, set, get on() { return on; } };
 })();
 
@@ -935,6 +941,93 @@ function renderContent() {
   }
   if (draft) toast("✏️ Draft mode: placeholders are visible. Edit content.js to fill them in.");
 }
+
+/* ---------- guided tour (agent-style steps) ---------- */
+const TOUR = [
+  ["#main .hero h1", "step 1/5 · intake", "Hi, I'm Russel. I build AI agents and the harness that keeps them safe."],
+  ["#how", "step 2/5 · plan", "How I work: real problem first, architecture before code, then harness the AI."],
+  ["#agentic .harness", "step 3/5 · act", "Try it: pick a scenario, press Run, and be the human in the loop."],
+  ["#work", "step 4/5 · observe", "Things I've built. The flagship has a full case study."],
+  ["#contact", "step 5/5 · ship", "That's the tour. Want to build something together? Copy my email here."],
+];
+const tour = (() => {
+  let i = -1;
+  let card;
+  function show() {
+    document.querySelectorAll(".tour-focus").forEach((el) => el.classList.remove("tour-focus"));
+    if (i < 0 || i >= TOUR.length) { card?.remove(); card = null; i = -1; return; }
+    const [sel, tag, text] = TOUR[i];
+    const el = $(sel);
+    el.classList.add("tour-focus");
+    el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+    if (!card) {
+      card = document.createElement("div");
+      card.className = "tour";
+      card.setAttribute("role", "dialog");
+      card.setAttribute("aria-label", "Guided tour");
+      document.body.appendChild(card);
+    }
+    card.innerHTML = `<p class="tour__tag">${tag}</p><p>${text}</p><div class="tour__btns">
+      <button type="button" class="btn btn--small btn--ghost" data-tour="end">Skip</button>
+      <button type="button" class="btn btn--small btn--primary" data-tour="next">${i === TOUR.length - 1 ? "Done ✓" : "Next →"}</button></div>`;
+    card.querySelector('[data-tour="next"]').onclick = () => { i += 1; sfx.play.step(); show(); };
+    card.querySelector('[data-tour="end"]').onclick = () => { i = -1; show(); };
+    card.querySelector('[data-tour="next"]').focus({ preventScroll: true });
+  }
+  return { start: () => { i = 0; show(); }, end: () => { i = -1; show(); }, get on() { return i >= 0; } };
+})();
+$("#tour-btn")?.addEventListener("click", tour.start);
+
+/* ---------- keyboard shortcuts ---------- */
+const SHORTCUTS = [
+  ["g h", "go to How I work", () => go("#how")],
+  ["g a", "go to Agentic", () => go("#agentic")],
+  ["g w", "go to Work", () => go("#work")],
+  ["g c", "go to Contact", () => go("#contact")],
+  ["r", "run the harness", () => { go("#agentic"); setTimeout(runHarness, reduceMotion ? 0 : 500); }],
+  ["t", "cycle theme", () => $("#theme-btn").click()],
+  ["s", "toggle sound", () => $("#sound-btn").click()],
+  ["`", "open terminal", () => openSh()],
+  ["?", "show shortcuts", () => toggleHelp()],
+];
+function toggleHelp(force) {
+  let el = $("#keys");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "keys";
+    el.className = "keys";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", "Keyboard shortcuts");
+    el.innerHTML = `<p class="kicker">~/shortcuts</p><ul>${SHORTCUTS.map(([k, d]) => `<li><span>${d}</span>${k.split(" ").map((x) => `<kbd>${esc(x)}</kbd>`).join(" ")}</li>`).join("")}</ul><p class="keys__hint">press <kbd>Esc</kbd> to close</p>`;
+    el.hidden = true;
+    document.body.appendChild(el);
+  }
+  el.hidden = force === undefined ? !el.hidden : !force;
+}
+let pendingG = 0;
+const konami = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+let konamiAt = 0;
+document.addEventListener("keydown", (e) => {
+  if (/input|textarea/i.test(document.activeElement.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+  // easter egg: blood-moon eclipse
+  konamiAt = e.key === konami[konamiAt] ? konamiAt + 1 : e.key === konami[0] ? 1 : 0;
+  if (konamiAt === konami.length) {
+    konamiAt = 0;
+    document.body.classList.add("eclipse");
+    sfx.play.howl();
+    toast("🌑 Eclipse unlocked. The wolf approves.");
+    setTimeout(() => document.body.classList.remove("eclipse"), 6000);
+    return;
+  }
+  if (e.key === "Escape") { toggleHelp(false); if (tour.on) tour.end(); return; }
+  if (e.key === "`") return; // handled by the shell
+  const now = Date.now();
+  if (e.key === "g") { pendingG = now; return; }
+  const combo = now - pendingG < 900 ? `g ${e.key}` : e.key;
+  pendingG = 0;
+  const hit = SHORTCUTS.find(([k]) => k === combo);
+  if (hit && $("#sh").hidden) { e.preventDefault(); hit[2](); }
+});
 
 /* ---------- init ---------- */
 renderContent();

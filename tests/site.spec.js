@@ -162,3 +162,26 @@ test("sound is off by default and toggles on", async ({ page }) => {
   await page.reload();
   await expect(btn).toHaveAttribute("aria-pressed", "true");
 });
+
+test("guided tour walks through five steps", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#tour-btn").click();
+  const card = page.locator(".tour");
+  await expect(card).toContainText("step 1/5");
+  for (let i = 0; i < 4; i++) await card.getByRole("button", { name: /Next/ }).click();
+  await expect(card).toContainText("step 5/5");
+  await card.getByRole("button", { name: /Done/ }).click();
+  await expect(card).toHaveCount(0);
+});
+
+test("keyboard shortcuts: ? opens help, g w jumps to work", async ({ page, isMobile }) => {
+  test.skip(isMobile, "keyboard shortcuts are desktop-only");
+  await page.goto("/");
+  await page.keyboard.press("?");
+  await expect(page.locator("#keys")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#keys")).toBeHidden();
+  await page.keyboard.press("g");
+  await page.keyboard.press("w");
+  await expect(page.locator("#work")).toBeInViewport();
+});

@@ -586,3 +586,26 @@ kbd {
 
 .project__tags span.tag--hot { border-color: var(--accent); color: var(--accent-text); font-weight: 700; }
 .log .draft { align-self: flex-start; margin-left: 0; }
+
+/* ---------- tour ---------- */
+.tour { position: fixed; left: 50%; bottom: 24px; z-index: 85; width: min(440px, calc(100% - 32px)); transform: translateX(-50%); padding: 16px 18px; border: 1px solid var(--accent); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); animation: slide .25s var(--ease); }
+.tour p { margin: 0 0 12px; font-size: 15px; }
+.tour .tour__tag { margin-bottom: 6px; color: var(--accent-text); font: 700 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.tour__btns { display: flex; justify-content: flex-end; gap: 8px; }
+.tour-focus { outline: 2px solid var(--accent); outline-offset: 10px; border-radius: 14px; transition: outline-color .3s; }
+.tour-link { margin-top: 14px; padding: 0; border: 0; background: none; color: var(--muted); font: 13px var(--mono); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.tour-link:hover { color: var(--accent-text); }
+
+/* ---------- shortcuts ---------- */
+.keys { position: fixed; right: 20px; bottom: 20px; z-index: 86; width: min(320px, calc(100% - 40px)); padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); animation: slide .2s var(--ease); }
+.keys[hidden] { display: none; }
+.keys ul { margin: 0; padding: 0; list-style: none; }
+.keys li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 13.5px; }
+.keys li:first-child { border-top: 0; }
+.keys__hint { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+
+/* ---------- easter egg: eclipse ---------- */
+body.eclipse #wolf circle[fill="url(#mg)"], body.eclipse #wolf rect[fill="url(#mg)"] { filter: hue-rotate(-12deg) brightness(.55) saturate(1.6); transition: filter 1.2s; }
+body.eclipse #wolf { animation: quake .5s ease-in-out 3; }
+body.eclipse .hero__grid { filter: brightness(2.2); }
+@keyframes quake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
