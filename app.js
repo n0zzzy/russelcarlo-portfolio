@@ -163,8 +163,29 @@ const SCENARIOS = {
       guard: [["", "scan input for injection & PII ... "], ["bad", "BLOCKED\n"], ["", "reason: prompt-injection pattern\n"], ["tx", "→ safe reply: \"I can't share internal instructions, but I can help with your order.\"\n"]],
     },
     score: 1.0,
+    ms: { guard: 38 },
+  },
+  fallback: {
+    prompt: "“Where is my order #4471?”",
+    noHuman: "read-only lookup · low risk → no approval needed\n",
+    steps: {
+      guard: [["", "scan input for injection & PII ... "], ["ok", "clean\n"]],
+      plan: [["", "orchestrator → "], ["tx", "inventory agent\n"]],
+      tools: [
+        ["", "orders API ........ "], ["bad", "503 timeout (1.2s)\n"],
+        ["", "retry 1/2 · backoff 400ms ... "], ["bad", "503\n"],
+        ["warn", "↳ fallback: read replica · "], ["ok", "found ✓ out for delivery\n"],
+        ["", "model Sonnet ...... "], ["bad", "rate-limited\n"],
+        ["warn", "↳ fallback via OpenRouter → Haiku · "], ["ok", "ok\n"],
+      ],
+    },
+    score: 0.89,
+    ms: { guard: 41, plan: 210, tools: 2860, eval: 330 },
+    fails: ["tools"],
   },
 };
+SCENARIOS.deploy.ms = { guard: 42, plan: 380, tools: 1540, human: 0, eval: 410 };
+SCENARIOS.refund.ms = { guard: 39, plan: 260, tools: 720, human: 0, eval: 360 };
 let scenario = "deploy";
 let running = false;
 
@@ -191,6 +212,16 @@ function waitForDecision() {
   });
 }
 
+function renderTrace(spans) {
+  const total = spans.reduce((s, x) => s + x.ms, 0) || 1;
+  $("#trace-bars").innerHTML = spans
+    .map((x, i) => `<span class="${x.cls}" title="${x.name} · ${x.ms} ms" style="flex:${Math.max(x.ms / total, 0.03)};animation-delay:${i * 80}ms"></span>`)
+    .join("");
+  const fmt = (ms) => (ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
+  $("#trace-total").textContent = `${spans.length} spans · ${fmt(total)}`;
+  $("#trace").hidden = false;
+}
+
 async function runHarness() {
   if (running) return;
   running = true;
@@ -200,6 +231,9 @@ async function runHarness() {
   $("#console-log").innerHTML = "";
   resetPipeline();
   writeLog([["tx", `$ agent run --scenario ${scenario}\n`]]);
+  $("#trace").hidden = true;
+  const spans = [];
+  let humanStart = 0;
 
   for (const name of ["guard", "plan", "tools"]) {
     if (!sc.steps[name]) break;
@@ -208,6 +242,7 @@ async function runHarness() {
     await sleep(700 * t);
     writeLog(sc.steps[name]);
     li.classList.remove("is-running");
+    spans.push({ name, ms: sc.ms?.[name] ?? 300, cls: sc.fails?.includes(name) ? "fail" : "" });
     if (sc.blocked) {
       li.classList.add("is-blocked");
       ["plan", "tools", "human"].forEach((n) => stepEl(n).classList.add("is-skipped"));
@@ -216,12 +251,17 @@ async function runHarness() {
     li.classList.add("is-done");
   }
 
-  if (!sc.blocked) {
+  if (sc.noHuman) {
+    stepEl("human").classList.add("is-skipped");
+    writeLog([["", sc.noHuman]]);
+  } else if (!sc.blocked) {
     const li = stepEl("human");
     li.classList.add("is-running");
     $("#approval-text").innerHTML = sc.approval;
     writeLog([["warn", "⏸ waiting for human approval…\n"]]);
+    humanStart = performance.now();
     const decision = await waitForDecision();
+    spans.push({ name: "human", ms: Math.round(performance.now() - humanStart), cls: "wait" });
     li.classList.remove("is-running");
     li.classList.add(decision === "approve" ? "is-done" : "is-blocked");
     writeLog(decision === "approve" ? sc.approved : sc.rejected);
@@ -233,7 +273,9 @@ async function runHarness() {
   writeLog([["", "judge: goal success · safety · tool choice → "], ["ok", `${sc.score.toFixed(2)}\n`]]);
   ev.classList.remove("is-running");
   ev.classList.add("is-done");
+  spans.push({ name: "eval", ms: sc.ms?.eval ?? 350, cls: "ok" });
   writeLog([["ok", "✓ run complete · trace saved\n"]]);
+  renderTrace(spans);
   $("#run-btn").disabled = false;
   running = false;
 }
@@ -247,6 +289,7 @@ $$(".harness__scenarios .chip").forEach((chip) => {
     scenario = chip.dataset.scenario;
     $("#scenario-prompt").textContent = SCENARIOS[scenario].prompt;
     $("#console-log").textContent = "Press Run to start the agent.";
+    $("#trace").hidden = true;
     resetPipeline();
   });
 });
@@ -328,10 +371,10 @@ const SH = {
   wins: { desc: "track record", run: () => SH.ls.run("wins") },
   stack: { desc: "tools I use", run: () => SH.ls.run("stack") },
   run: {
-    desc: "run deploy | refund | inject",
+    desc: "run deploy | refund | inject | fallback",
     run: (arg) => {
       const name = arg && SCENARIOS[arg] ? arg : null;
-      if (!name) return `<span class="m">usage: run deploy | refund | inject</span>`;
+      if (!name) return `<span class="m">usage: run deploy | refund | inject | fallback</span>`;
       closeSh();
       $(`.harness__scenarios [data-scenario="${name}"]`).click();
       go("#agentic");
@@ -448,7 +491,63 @@ function observeReveals() {
   $$(".reveal:not(.is-in)").forEach((el) => obs.observe(el));
 }
 
+/* ---------- live GitHub status ---------- */
+async function ghStatus() {
+  const el = $("#gh-status");
+  try {
+    let at = sessionStorage.getItem("gh-last");
+    if (!at) {
+      const res = await fetch("https://api.github.com/users/n0zzzy/repos?sort=pushed&per_page=1");
+      if (!res.ok) return;
+      const [repo] = await res.json();
+      if (!repo) return;
+      at = repo.pushed_at;
+      sessionStorage.setItem("gh-last", at);
+    }
+    const mins = Math.max(1, Math.round((Date.now() - new Date(at)) / 60000));
+    const ago = mins < 60 ? `${mins}m` : mins < 1440 ? `${Math.round(mins / 60)}h` : `${Math.round(mins / 1440)}d`;
+    el.innerHTML = `shipping · last push <b>${ago} ago</b> on GitHub`;
+  } catch { /* keep the static tagline */ }
+}
+
+/* ---------- polish: progress, spotlight, count-up, mobile menu ---------- */
+addEventListener("scroll", () => {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  $("#progress").style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`;
+}, { passive: true });
+
+document.addEventListener("pointermove", (e) => {
+  const el = e.target.closest?.(".card, .project, .stack__group, .timeline a");
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  el.style.setProperty("--my", `${e.clientY - r.top}px`);
+});
+
+function countUp() {
+  $$("[data-count]").forEach((el) => {
+    const end = +el.dataset.count;
+    if (reduceMotion || end < 10) return;
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / 1400);
+      el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3))).toLocaleString("en-US");
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+$("#menu-btn").addEventListener("click", () => {
+  const sheet = $("#sheet");
+  sheet.hidden = !sheet.hidden;
+  $("#menu-btn").setAttribute("aria-expanded", String(!sheet.hidden));
+});
+$$("#sheet a").forEach((a) => a.addEventListener("click", () => { $("#sheet").hidden = true; $("#menu-btn").setAttribute("aria-expanded", "false"); }));
+
 /* ---------- init ---------- */
+ghStatus();
+countUp();
 renderProjects();
 renderTimeline();
 renderStack();

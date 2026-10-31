@@ -102,9 +102,10 @@ kbd {
 .brand { display: flex; align-items: center; gap: 10px; font: 700 15px var(--mono); text-decoration: none; }
 .brand__mark { width: 30px; height: 30px; }
 .nav__links { display: flex; gap: 4px; margin-left: auto; }
+.nav__links + .nav__actions { margin-left: 0; }
 .nav__links a { padding: 6px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; transition: color .2s, background .2s; }
 .nav__links a:hover, .nav__links a.is-active { color: var(--text); background: var(--surface-2); }
-.nav__actions { display: flex; gap: 8px; align-items: center; }
+.nav__actions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
 .kbd-btn, .icon-btn {
   display: inline-flex; align-items: center; gap: 10px;
   height: 36px; padding: 0 10px;
@@ -162,7 +163,7 @@ kbd {
 .proof { display: flex; flex-wrap: wrap; gap: 28px; margin: 40px 0 0; padding: 24px 0 0; list-style: none; border-top: 1px solid var(--border); }
 .proof li { display: grid; }
 .proof b { font-size: 22px; letter-spacing: -.02em; }
-.proof span { color: var(--muted); font-size: 13px; }
+.proof li > span { color: var(--muted); font-size: 13px; }
 
 .hero__art { position: relative; }
 .moon { width: 100%; max-width: 420px; margin-left: auto; }
@@ -338,7 +339,8 @@ kbd {
   .project.is-flagship { grid-column: span 2; grid-row: auto; }
 }
 @media (max-width: 720px) {
-  .nav__links, .kbd-btn span { display: none; }
+  .nav__links, .kbd-btn kbd { display: none; }
+  .nav__links + .nav__actions { margin-left: auto; }
   .kbd-btn { padding: 0 8px; }
   .bento { grid-template-columns: 1fr; }
   .project.is-flagship { grid-column: span 1; }
@@ -348,4 +350,38 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .reveal { opacity: 1; transform: none; }
+}
+
+/* ---------- v2: progress, spotlight, trace, mobile menu ---------- */
+.progress { position: fixed; top: 0; left: 0; z-index: 60; height: 2px; width: 100%; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); box-shadow: 0 0 10px var(--accent); }
+
+.card, .project, .stack__group, .timeline a, .harness { position: relative; isolation: isolate; }
+.card::after, .project::after, .stack__group::after, .timeline a::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), var(--accent-soft), transparent 45%);
+  opacity: 0; transition: opacity .3s;
+}
+.card:hover::after, .project:hover::after, .stack__group:hover::after, .timeline a:hover::after { opacity: 1; }
+
+.trace { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--border); font: 11px var(--mono); color: var(--muted); }
+.trace[hidden] { display: none; }
+.trace__label { text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+.trace__bars { flex: 1; display: flex; gap: 3px; height: 10px; }
+.trace__bars span { height: 100%; border-radius: 3px; background: var(--accent); opacity: .85; animation: grow .5s var(--ease) both; transform-origin: 0 50%; }
+.trace__bars span.wait { background: #f59e0b; }
+.trace__bars span.fail { background: transparent; border: 1px dashed var(--accent-2); }
+.trace__bars span.ok { background: #16a34a; }
+@keyframes grow { from { transform: scaleX(0); } }
+
+.menu-btn { display: none; }
+.sheet { position: fixed; top: 64px; left: 0; right: 0; z-index: 49; display: grid; padding: 10px 20px 18px; border-bottom: 1px solid var(--border); background: var(--bg); animation: slide .2s var(--ease); }
+.sheet[hidden] { display: none; }
+.sheet a { padding: 12px 4px; border-bottom: 1px solid var(--border); font: 600 15px var(--mono); text-decoration: none; color: var(--text); }
+.sheet a:last-child { border-bottom: 0; }
+
+@media (max-width: 720px) {
+  .menu-btn { display: inline-flex; }
+}
+@media (hover: none) {
+  .card::after, .project::after, .stack__group::after, .timeline a::after { display: none; }
 }
