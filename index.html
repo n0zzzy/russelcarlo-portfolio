@@ -167,7 +167,7 @@
           </div>
           <ul class="ci__gates">
             <li data-job="guardrails"><b>Guardrails</b><span>HTML validation · CSP hash · broken links</span><i class="ok">pass</i></li>
-            <li data-job="tests"><b>Tests</b><span>end-to-end on desktop + mobile</span><i class="ok" id="ci-tests">49 / 49</i></li>
+            <li data-job="tests"><b>Tests</b><span>end-to-end on desktop + mobile</span><i class="ok" id="ci-tests">55 / 55</i></li>
             <li data-job="evals"><b>Evals</b><span>Lighthouse perf · a11y · best practices · SEO</span><i class="ok" id="ci-lh">99 · 100 · 100 · 100</i></li>
             <li data-job="production"><b>Human gate</b><span>preview deploy → I approve → production</span><i class="wait">manual</i></li>
           </ul>
@@ -441,8 +441,10 @@
         <p class="kicker">~/contact</p>
         <h2>Let's build something<br /><span class="accent">that actually ships.</span></h2>
         <p class="section__sub">Internships, hackathon teams, or agent projects. My inbox is open.</p>
+        <p class="local" id="local-time"></p>
         <div class="cta">
           <button type="button" class="btn btn--primary" id="copy-email" data-email="manzoncarlo345@gmail.com">Copy email <span aria-hidden="true">⧉</span></button>
+          <a class="btn btn--ghost" href="/resume">Resume ⤓</a>
           <a class="btn btn--ghost" href="https://www.linkedin.com/in/russelcarlo">LinkedIn</a>
           <a class="btn btn--ghost" href="https://github.com/n0zzzy">GitHub</a>
         </div>
@@ -453,12 +455,12 @@
   <footer class="footer">
     <div class="wrap footer__inner">
       <span>© <span id="year"></span> Russel Carlo · <i>“I have no enemies.”</i></span>
-      <span class="footer__hint">Press <kbd>`</kbd> for the terminal · <kbd>?</kbd> for shortcuts</span>
+      <span class="footer__hint">Press <kbd>`</kbd> for the terminal · <kbd>?</kbd> for shortcuts · <button type="button" class="trophy-btn" id="trophy-btn" aria-label="Achievements">🏆 <span id="trophy-count">0/16</span></button></span>
     </div>
   </footer>
 
   <nav class="sheet" id="sheet" hidden aria-label="Mobile">
-    <a href="#how">~/how-i-work</a><a href="#agentic">~/agentic</a><a href="#play">~/play</a><a href="#work">~/work</a><a href="#wins">~/track-record</a><a href="#stack">~/stack</a><a href="#contact">~/contact</a>
+    <a href="#how">~/how-i-work</a><a href="#agentic">~/agentic</a><a href="#play">~/play</a><a href="#work">~/work</a><a href="#wins">~/track-record</a><a href="#stack">~/stack</a><a href="#contact">~/contact</a><a href="/resume">~/resume</a>
   </nav>
 
   <!-- TERMINAL -->

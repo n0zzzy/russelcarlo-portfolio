@@ -2,7 +2,7 @@
   "name": "russelcarlo-portfolio",
   "private": true,
   "scripts": {
-    "validate": "html-validate index.html 404.html kiro-harness.html linaw.html",
+    "validate": "html-validate index.html 404.html kiro-harness.html linaw.html resume.html",
     "test:e2e": "playwright test",
     "serve": "serve -l 4173 .",
     "check:csp": "node scripts/check-csp.mjs",

@@ -30,7 +30,7 @@ test("CI gates show the latest real GitHub Actions run", async ({ page }) => {
   ] } }));
   await page.goto("/#ci");
   await expect(page.locator("#ci-live")).toContainText("run #42 on abc1234");
-  await expect(page.locator('[data-job="tests"] i')).toHaveText("49 / 49");
+  await expect(page.locator('[data-job="tests"] i')).toHaveText("55 / 55");
   await expect(page.locator('[data-job="evals"] i')).toHaveText("fail");
   await expect(page.locator('[data-job="production"] i')).toHaveText("awaiting me");
 });
@@ -50,6 +50,36 @@ test("Guardrail Rush: score with clicks and arrow keys, then the shift ends", as
   await expect(page.locator("#rush-end")).toBeVisible();
   await expect(page.locator("#rush-stats")).toContainText("2/2 correct");
   await expect(page.locator("#rush-best")).toHaveText("200");
+});
+
+test("achievements unlock, persist, and list in the panel", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#trophy-count")).toHaveText("0/16");
+  await page.locator("#sh-open").click();
+  await expect(page.locator("#trophy-count")).toHaveText("1/16");
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(page.locator("#trophy-count")).toHaveText("1/16");
+  await page.locator("#trophy-btn").click();
+  await expect(page.locator("#trophies")).toBeVisible();
+  await expect(page.locator("#trophies")).toContainText("I'm in");
+  // reaching the footer to click the trophy also unlocks Explorer
+  await expect(page.locator("#trophies .is-on")).toHaveCount(2);
+  await expect(page.locator("#trophies")).toContainText("Explorer");
+});
+
+test("contact shows Manila local time", async ({ page }) => {
+  await page.goto("/#contact");
+  await expect(page.locator("#local-time")).toContainText("in Manila (UTC+8)");
+});
+
+test("resume is one page of real content with a PDF button", async ({ page }) => {
+  await page.goto("/#contact");
+  await page.locator('#contact a[href="/resume"]').click();
+  await expect(page).toHaveURL(/resume/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Russel Carlo Manzon");
+  await expect(page.locator(".cv__sec h2")).toHaveText(["Summary", "Awards", "Selected projects", "Certifications & programs", "Skills", "Education"]);
+  await expect(page.locator("#cv-print")).toBeVisible();
 });
 
 test("activity shows the contribution snake", async ({ page }) => {

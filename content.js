@@ -9,7 +9,7 @@
 window.CONTENT = {
   // ~/logs: short build logs / blog posts. `url` can point to LinkedIn, Medium, dev.to, etc.
   logs: [
-    { date: "2026-11", title: "Harnessing my own portfolio like an agent", excerpt: "Guardrails, 49 end-to-end tests, Lighthouse evals, and a human approval gate before anything reaches production.", url: "https://github.com/n0zzzy/russelcarlo-portfolio", tags: ["ci/cd", "devops"] },
+    { date: "2026-11", title: "Harnessing my own portfolio like an agent", excerpt: "Guardrails, 55 end-to-end tests, Lighthouse evals, and a human approval gate before anything reaches production.", url: "https://github.com/n0zzzy/russelcarlo-portfolio", tags: ["ci/cd", "devops"] },
     { date: "2026-10", title: "Linaw: an AI safe space where safety runs before the AI", excerpt: "Local crisis check, names masked in the browser, zero storage. 4th place at EdTek Con 2026.", url: "/linaw", tags: ["case study", "safety"] },
     { date: "2026-10", title: "4th place at the EdTek Con 2026 AI Hackathon", excerpt: "Representing NU Fairview with Linaw, a privacy-first AI anti-bullying companion.", url: "https://www.linkedin.com/feed/update/urn:li:activity:7518483801849651200/", tags: ["hackathon", "linkedin"] },
     { date: "2026-09", title: "Seven AI agents, one orchestrator, and a human gate", excerpt: "How permission boundaries and an APPROVE DEPLOY step took a plain-English request to a live AWS app.", url: "/kiro-harness", tags: ["case study", "kiro"] },

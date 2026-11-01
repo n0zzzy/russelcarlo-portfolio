@@ -98,6 +98,7 @@ $("#theme-btn").addEventListener("click", () => {
   const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
   setTheme(next);
   toast(`Theme: ${next}`);
+  trophy.unlock("theme");
 });
 
 /* ---------- toast ---------- */
@@ -109,6 +110,70 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("is-on"), 1800);
 }
+
+/* ---------- achievements: every easter egg is worth something ---------- */
+const TROPHIES = [
+  ["terminal", "I'm in", "open the n0zzzy shell"],
+  ["sudo", "Hired", "sudo hire russel"],
+  ["hitl", "Human in the loop", "approve or reject an agent's action"],
+  ["inject", "Attack blocked", "watch the guardrails stop an attack"],
+  ["rush", "On shift", "finish a Guardrail Rush"],
+  ["alpha", "Alpha wolf", "score 2,200+ in Guardrail Rush"],
+  ["wolf", "Unleashed", "release the wolf from the moon"],
+  ["eclipse", "Blood moon", "↑ ↑ ↓ ↓ ← → ← → b a"],
+  ["tour", "Guided", "finish the tour"],
+  ["theme", "Night shift", "switch the theme"],
+  ["sound", "Turn it up", "turn the sound on"],
+  ["reader", "Deep reader", "open a case study"],
+  ["recruiter", "Recruiter mode", "open the resume"],
+  ["inbox", "Say hi", "copy my email"],
+  ["explorer", "Explorer", "scroll all the way down"],
+  ["all", "Completionist", "unlock everything else"],
+];
+const trophy = (() => {
+  const got = new Set(JSON.parse(localStorage.getItem("trophies") || "[]"));
+  const render = () => { $("#trophy-count").textContent = `${got.size}/${TROPHIES.length}`; };
+  function unlock(id) {
+    if (got.has(id)) return;
+    got.add(id);
+    localStorage.setItem("trophies", JSON.stringify([...got]));
+    render();
+    const [, name] = TROPHIES.find(([k]) => k === id);
+    // after any toast the action itself shows
+    setTimeout(() => { toast(`🏆 ${name} · ${got.size}/${TROPHIES.length}`); sfx.play.ok(); }, 900);
+    if (got.size === TROPHIES.length - 1 && !got.has("all")) setTimeout(() => unlock("all"), 2400);
+  }
+  const list = () => TROPHIES.map(([id, name, hint]) => ({ id, name, hint, on: got.has(id) }));
+  function panel(force) {
+    let el = $("#trophies");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "trophies";
+      el.className = "keys trophies";
+      el.setAttribute("role", "dialog");
+      el.setAttribute("aria-label", "Achievements");
+      el.hidden = true;
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `<p class="kicker">~/achievements · ${got.size}/${TROPHIES.length}</p><ul>${list().map((t) =>
+      `<li class="${t.on ? "is-on" : ""}"><span><b>${t.on ? "🏆" : "🔒"} ${t.on ? t.name : "???"}</b><small>${t.hint}</small></span></li>`).join("")}</ul><p class="keys__hint">press <kbd>Esc</kbd> to close</p>`;
+    el.hidden = force === undefined ? !el.hidden : !force;
+  }
+  render();
+  $("#trophy-btn").addEventListener("click", () => panel());
+  // links that leave the page count before they navigate
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[href]");
+    if (!a) return;
+    const href = a.getAttribute("href");
+    if (href === "/linaw" || href === "/kiro-harness") unlock("reader");
+    if (href === "/resume") unlock("recruiter");
+  });
+  new IntersectionObserver((entries, io) => {
+    if (entries.some((e) => e.isIntersecting)) { io.disconnect(); unlock("explorer"); }
+  }).observe($(".footer"));
+  return { unlock, list, panel };
+})();
 
 /* ---------- hero log ---------- */
 const HERO_LINES = [
@@ -341,6 +406,7 @@ async function runHarness(customText, routedAs) {
     li.classList.add(decision === "approve" ? "is-done" : "is-blocked");
     writeLog(decision === "approve" ? sc.approved : sc.rejected);
     sfx.play[decision === "approve" ? "ok" : "bad"]();
+    trophy.unlock("hitl");
   }
 
   const ev = stepEl("eval");
@@ -351,6 +417,7 @@ async function runHarness(customText, routedAs) {
   ev.classList.add("is-done");
   spans.push({ name: "eval", ms: sc.ms?.eval ?? 350, cls: "ok" });
   writeLog([["ok", "✓ run complete · trace saved\n"]]);
+  if (sc.blocked) trophy.unlock("inject");
   renderTrace(spans);
   sfx.play.ok();
   $("#run-btn").disabled = false;
@@ -455,6 +522,11 @@ const SH = {
     },
   },
   wins: { desc: "track record", run: () => SH.ls.run("wins") },
+  achievements: {
+    desc: "what you've unlocked",
+    run: () => trophy.list().map((t) => t.on ? `<span class="g">🏆 ${t.name}</span>  <span class="m">${t.hint}</span>` : `<span class="m">🔒 ???  ${t.hint}</span>`).join("\n"),
+  },
+  resume: { desc: "open my one-page resume", run: () => { location.href = "/resume"; return `<span class="g">opening</span> /resume`; } },
   play: { desc: "play Guardrail Rush", run: () => { closeSh(); go("#play"); setTimeout(rush.start, reduceMotion ? 0 : 500); return ""; } },
   stack: { desc: "tools I use", run: () => SH.ls.run("stack") },
   run: {
@@ -498,7 +570,7 @@ const SH = {
   sudo: {
     hidden: true,
     run: (arg) => arg.startsWith("hire")
-      ? `<span class="g">[sudo] permission granted.</span>\nGreat choice. Let's talk → <span class="c">manzoncarlo345@gmail.com</span>`
+      ? trophy.unlock("sudo") ?? `<span class="g">[sudo] permission granted.</span>\nGreat choice. Let's talk → <span class="c">manzoncarlo345@gmail.com</span>`
       : `<span class="c">nice try.</span> guardrails blocked: privilege escalation`,
   },
 };
@@ -524,6 +596,7 @@ function shExec(line) {
 }
 function openSh() {
   $("#sh").hidden = false;
+  trophy.unlock("terminal");
   if (!$("#sh-out").childElementCount) {
     shPrint(`<span class="c">n0zzzy shell</span> v1.0 <span class="m">· type</span> help <span class="m">to start</span>\n<span class="m">try:</span> whoami · ls projects · run inject · sudo hire russel\n`);
   }
@@ -562,10 +635,23 @@ document.addEventListener("keydown", (e) => {
 /* ---------- email ---------- */
 async function copyEmail() {
   const email = $("#copy-email").dataset.email;
+  trophy.unlock("inbox");
   try { await navigator.clipboard.writeText(email); toast("Email copied ✓"); }
   catch { location.href = `mailto:${email}`; }
 }
 $("#copy-email").addEventListener("click", copyEmail);
+
+/* ---------- local time: so people know when I'll answer ---------- */
+function localTime() {
+  const el = $("#local-time");
+  const now = new Date();
+  const time = now.toLocaleTimeString("en-US", { timeZone: "Asia/Manila", hour: "numeric", minute: "2-digit" });
+  const h = +now.toLocaleString("en-US", { timeZone: "Asia/Manila", hour: "numeric", hourCycle: "h23" });
+  const night = h >= 23 || h < 7;
+  el.innerHTML = `<span aria-hidden="true">${night ? "🌙" : "☀️"}</span> <b>${time}</b> in Manila (UTC+8) · ${night ? "probably asleep, I'll reply in the morning" : "awake and shipping"}`;
+}
+localTime();
+setInterval(localTime, 30000);
 
 /* ---------- nav state & reveal ---------- */
 addEventListener("scroll", () => $(".nav").classList.toggle("is-scrolled", scrollY > 40), { passive: true });
@@ -577,9 +663,29 @@ const sectionObs = new IntersectionObserver((entries) => {
 }, { rootMargin: "-45% 0px -50% 0px" });
 $$("main section[id]").forEach((s) => sectionObs.observe(s));
 
+// decrypt effect: "~/w#rk" settles into "~/work"
+function scramble(el) {
+  if (reduceMotion) return;
+  const text = el.textContent;
+  const glyphs = "!<>-_/[]{}=+*^?#01";
+  let frame = 0;
+  const total = 14;
+  const step = () => {
+    el.textContent = [...text].map((c, i) => (c === " " || i < (frame / total) * text.length) ? c : glyphs[Math.floor(Math.random() * glyphs.length)]).join("");
+    if (++frame <= total) requestAnimationFrame(step);
+    else el.textContent = text;
+  };
+  step();
+}
 function observeReveals() {
   const obs = new IntersectionObserver((entries) => {
-    entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("is-in"); obs.unobserve(en.target); } });
+    entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      en.target.classList.add("is-in");
+      obs.unobserve(en.target);
+      const k = en.target.matches(".section__head") && $(".kicker", en.target);
+      if (k) scramble(k);
+    });
   }, { threshold: 0.12 });
   $$(".reveal:not(.is-in)").forEach((el) => obs.observe(el));
 }
@@ -835,6 +941,7 @@ const hunter = (() => {
   }
 
   function release() {
+    trophy.unlock("wolf");
     if (active) return;
     if (reduceMotion) { toast("The wolf stays put (reduced motion is on)"); return; }
     const r = moonWolf.getBoundingClientRect();
@@ -943,7 +1050,7 @@ const sfx = (() => {
     const btn = $("#sound-btn");
     btn.setAttribute("aria-pressed", String(on));
     btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
-    if (on && !silent) { audio().resume(); play.ok(); }
+    if (on && !silent) { audio().resume(); play.ok(); trophy.unlock("sound"); }
   }
 
   $("#sound-btn").addEventListener("click", () => { set(!on); toast(on ? "🔊 Sound on" : "🔇 Sound off"); });
@@ -1020,7 +1127,7 @@ const tour = (() => {
     card.innerHTML = `<p class="tour__tag">${tag}</p><p>${text}</p><div class="tour__btns">
       <button type="button" class="btn btn--small btn--ghost" data-tour="end">Skip</button>
       <button type="button" class="btn btn--small btn--primary" data-tour="next">${i === TOUR.length - 1 ? "Done ✓" : "Next →"}</button></div>`;
-    card.querySelector('[data-tour="next"]').onclick = () => { i += 1; sfx.play.step(); show(); };
+    card.querySelector('[data-tour="next"]').onclick = () => { i += 1; if (i === TOUR.length) trophy.unlock("tour"); sfx.play.step(); show(); };
     card.querySelector('[data-tour="end"]').onclick = () => { i = -1; show(); };
     card.querySelector('[data-tour="next"]').focus({ preventScroll: true });
   }
@@ -1039,6 +1146,7 @@ const SHORTCUTS = [
   ["t", "cycle theme", () => $("#theme-btn").click()],
   ["s", "toggle sound", () => $("#sound-btn").click()],
   ["`", "open terminal", () => openSh()],
+  ["a", "achievements", () => trophy.panel()],
   ["?", "show shortcuts", () => toggleHelp()],
 ];
 function toggleHelp(force) {
@@ -1068,10 +1176,11 @@ document.addEventListener("keydown", (e) => {
     document.body.classList.add("eclipse");
     sfx.play.howl();
     toast("🌑 Eclipse unlocked. The wolf approves.");
+    trophy.unlock("eclipse");
     setTimeout(() => document.body.classList.remove("eclipse"), 6000);
     return;
   }
-  if (e.key === "Escape") { toggleHelp(false); if (tour.on) tour.end(); return; }
+  if (e.key === "Escape") { toggleHelp(false); trophy.panel(false); if (tour.on) tour.end(); return; }
   if (e.key === "`") return; // handled by the shell
   const now = Date.now();
   if (e.key === "g") { pendingG = now; return; }
@@ -1199,6 +1308,8 @@ const rush = (() => {
     $("#rush-end").hidden = false;
     const record = s.score > best();
     if (record) localStorage.setItem("rush-best", s.score);
+    trophy.unlock("rush");
+    if (s.score >= RUSH_RANKS[3][0]) trophy.unlock("alpha");
     $("#rush-best").textContent = best();
     const rank = RUSH_RANKS.filter(([min]) => s.score >= min).pop()[1];
     const acc = s.total ? Math.round((s.hits / s.total) * 100) : 0;

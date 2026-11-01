@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resume — Russel Carlo Manzon</title>
+  <meta name="description" content="One-page resume of Russel Carlo Manzon: AI agents, cloud, and DevOps. Rank 1 at AWS QuickQuest, AWS and Microsoft certified." />
+  <meta property="og:title" content="Russel Carlo Manzon — Resume" />
+  <meta property="og:description" content="AI Agents · Cloud · DevOps. Multi-agent systems with guardrails, evals, and humans in the loop." />
+  <meta property="og:image" content="https://russelcarlo.vercel.app/assets/og.png" />
+  <link rel="canonical" href="https://russelcarlo.vercel.app/resume" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // apply saved theme before paint to avoid a flash
+    (function () {
+      var t = localStorage.getItem("theme") || "system";
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+  <script src="resume.js" defer></script>
+</head>
+<body class="case cv-page">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav is-scrolled cv-noprint">
+    <div class="wrap nav__inner">
+      <a class="brand" href="/" aria-label="Back to russelcarlo.vercel.app">
+        <img class="brand__mark" src="assets/favicon.svg" alt="" />
+        <span>n0zzzy</span>
+      </a>
+      <div class="nav__actions">
+        <a class="btn btn--small btn--ghost" href="/">← Portfolio</a>
+        <button type="button" class="btn btn--small btn--primary" id="cv-print">Save as PDF ⤓</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="cv">
+    <header class="cv__head">
+      <div>
+        <h1>Russel Carlo Manzon</h1>
+        <p class="cv__role">AI Agents · Cloud · DevOps</p>
+      </div>
+      <ul class="cv__contact">
+        <li>Philippines</li>
+        <li><a href="mailto:manzoncarlo345@gmail.com">manzoncarlo345@gmail.com</a></li>
+        <li><a href="https://russelcarlo.vercel.app">russelcarlo.vercel.app</a></li>
+        <li><a href="https://github.com/n0zzzy">github.com/n0zzzy</a></li>
+        <li><a href="https://www.linkedin.com/in/russelcarlo">linkedin.com/in/russelcarlo</a></li>
+      </ul>
+    </header>
+
+    <section class="cv__sec">
+      <h2>Summary</h2>
+      <p>IT student who designs the systems around AI: architecture, guardrails, evals, and human checkpoints, so multi-agent systems ship to production and stay reliable. Rank 1 at the AWS QuickQuest Finale, AWS and Microsoft certified, with 1st, 2nd, and 4th place hackathon finishes in four months.</p>
+    </section>
+
+    <section class="cv__sec">
+      <h2>Awards</h2>
+      <ul class="cv__list">
+        <li><b>Rank 1 Overall + Best Technical Solution</b>, AWS QuickQuest Finale <time>Aug 2026</time><span>Team EPIC 2's AI deployment-checklist bot on Amazon Quick Suite.</span></li>
+        <li><b>2nd Place</b>, Kiro Agent Orchestration Hackathon, eCloudvalley Philippines <time>Sep 2026</time></li>
+        <li><b>4th Place</b>, EdTek Con 2026 AI Hackathon, representing NU Fairview <time>Oct 2026</time><span>Linaw: privacy-first AI anti-bullying companion.</span></li>
+      </ul>
+    </section>
+
+    <section class="cv__sec">
+      <h2>Selected projects</h2>
+      <ul class="cv__list">
+        <li><b>kiro-sdlc-agent-harness</b> · Kiro, Terraform, AWS<span>Orchestrator + 7 permission-bounded agents take a plain-English request to a live serverless AWS app; 32 resources applied, all smoke tests passing, behind a human approval gate.</span></li>
+        <li><b>Linaw</b> · React, TypeScript, Claude agent loop<span>AI safe space for students: local crisis check before any model call, in-browser PII masking, output guardrails, zero storage, EN/FIL.</span></li>
+        <li><b>novamart-multi-agent-agentcore</b> · Bedrock AgentCore, Strands<span>5-agent customer support with parallel multi-agent RAG, guardrails, and CloudWatch / X-Ray observability.</span></li>
+        <li><b>production-ready-ai-agents-eks</b> · EKS, LiteLLM, Terraform<span>A2A agents behind a model-agnostic LiteLLM plane, vLLM or Bedrock, with LLM-as-a-judge evals.</span></li>
+        <li><b>russelcarlo.vercel.app</b> · HTML, CSS, JS, GitHub Actions<span>This portfolio, harnessed like an agent: validation, 55 end-to-end tests, Lighthouse evals, and a human gate before production.</span></li>
+      </ul>
+    </section>
+
+    <section class="cv__sec">
+      <h2>Certifications &amp; programs</h2>
+      <ul class="cv__list cv__list--tight">
+        <li><b>AWS Certified AI Practitioner</b> (AIF-C01) <time>Sep 2026</time></li>
+        <li><b>Microsoft Certified: Fabric Data Engineer Associate</b> (DP-700) <time>Sep 2026</time></li>
+        <li><b>Future AWS Agent Engineer Nanodegree</b>, Udacity <time>Oct 2026</time></li>
+        <li><b>BeSA · Agentic AI: PoC to Production</b> <time>Sep 2026</time></li>
+        <li><b>AWS AI &amp; ML Scholarship</b>, top 4,500 scholars globally <time>Jul 2026</time></li>
+      </ul>
+    </section>
+
+    <section class="cv__sec">
+      <h2>Skills</h2>
+      <dl class="cv__skills">
+        <dt>Agents</dt><dd>Bedrock AgentCore, Strands Agents, MCP, A2A, LiteLLM, Bedrock Guardrails, Langfuse, OpenTelemetry</dd>
+        <dt>Cloud / DevOps</dt><dd>AWS, Azure, Docker, Kubernetes, Terraform, GitHub Actions, Linux</dd>
+        <dt>Languages</dt><dd>Python, TypeScript, JavaScript, Kotlin, SQL</dd>
+        <dt>Web / Data</dt><dd>React, Next.js, Node.js, PostgreSQL, DynamoDB, DuckDB, Microsoft Fabric</dd>
+        <dt>AI tools</dt><dd>Claude Code, Codex, Kiro, Gemini, Ollama, OpenRouter</dd>
+      </dl>
+    </section>
+
+    <section class="cv__sec">
+      <h2>Education</h2>
+      <ul class="cv__list cv__list--tight">
+        <li><b>Information Technology</b>, National University Fairview</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
