@@ -138,6 +138,7 @@ const trophy = (() => {
     got.add(id);
     localStorage.setItem("trophies", JSON.stringify([...got]));
     render();
+    if ($("#trophies") && !$("#trophies").hidden) panel(true); // keep an open panel live
     const [, name] = TROPHIES.find(([k]) => k === id);
     // after any toast the action itself shows
     setTimeout(() => { toast(`🏆 ${name} · ${got.size}/${TROPHIES.length}`); sfx.play.ok(); }, 900);
