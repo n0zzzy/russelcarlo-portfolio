@@ -463,6 +463,14 @@ kbd {
 .ci__gates i { font: 700 12px var(--mono); font-style: normal; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .ci__gates i.ok { color: #16a34a; background: rgba(22, 163, 74, .12); }
 .ci__gates i.wait { color: #b45309; background: rgba(245, 158, 11, .14); }
+.ci__gates i.bad { color: #dc2626; background: rgba(220, 38, 38, .12); }
+.ci__gates i.run { color: var(--muted); background: var(--surface); animation: ci-pulse 1.2s ease-in-out infinite; }
+@keyframes ci-pulse { 50% { opacity: .45; } }
+.ci__live { grid-column: 2; margin: -14px 0 0; color: var(--muted); font: 12px var(--mono); }
+.ci__live .dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #16a34a; vertical-align: 1px; }
+.ci__live .dot.bad { background: #dc2626; }
+.ci__live .dot.run { background: #f59e0b; }
+@media (prefers-reduced-motion: reduce) { .ci__gates i.run { animation: none; } }
 
 .next { margin-top: 22px; padding: 24px 26px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .next h3 { font-size: 20px; }
@@ -472,6 +480,7 @@ kbd {
 @media (max-width: 960px) {
   .process, .pillars, .ci { grid-template-columns: 1fr 1fr; }
   .ci { grid-template-columns: 1fr; }
+  .ci__live { grid-column: 1; }
   .process li::after { display: none; }
 }
 @media (max-width: 720px) {

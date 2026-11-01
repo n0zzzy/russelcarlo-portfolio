@@ -14,6 +14,12 @@ const PROJECTS = [
     img: "https://raw.githubusercontent.com/n0zzzy/kiro-sdlc-agent-harness/main/docs/architecture.svg",
   },
   {
+    // team repo is private, so the shell's `open` goes to the live app instead of GitHub
+    repo: "linaw", kind: "AI agent · Safety · 4th place", cat: "agents web", caseStudy: "/linaw", live: "https://antibullying-xi.vercel.app", private: true,
+    desc: "Privacy-first AI safe space for students (EdTek Con 2026). Crisis check runs locally before any AI call, names are masked in the browser, and nothing is stored.",
+    tags: ["React", "Claude agent loop", "PII masking", "EN · FIL"],
+  },
+  {
     repo: "novamart-multi-agent-agentcore", kind: "Multi-agent · RAG", cat: "agents",
     desc: "5-agent customer support on Bedrock AgentCore with parallel multi-agent RAG, guardrails, and X-Ray observability.",
     tags: ["AgentCore", "Strands", "Claude"],
@@ -39,19 +45,19 @@ const PROJECTS = [
     tags: ["Step Functions", "Lambda", "HITL"],
   },
   {
-    repo: "pawfeed-smart-pet-feeder", kind: "Full-stack · QA", cat: "web", size: "wide", live: "https://pawfeed-smart-pet-feeder.vercel.app",
-    desc: "Smart pet feeder web app and installable PWA, covered by Playwright automation with Allure reports and CI/CD to Vercel.",
-    tags: ["PWA", "Playwright", "Allure", "Vercel"],
-  },
-  {
-    repo: "kiro-ph-data-dashboard", kind: "Data · Web", cat: "web", size: "wide",
+    repo: "kiro-ph-data-dashboard", kind: "Data · Web", cat: "web",
     desc: "PH flood-control projects dashboard. DuckDB-WASM runs SQL over Parquet in the browser in under 100 ms, with no server.",
     tags: ["DuckDB-WASM", "React", "TypeScript"],
   },
   {
-    repo: "aws-eks-workshop", kind: "Cloud · Kubernetes", cat: "cloud", size: "wide",
+    repo: "aws-eks-workshop", kind: "Cloud · Kubernetes", cat: "cloud",
     desc: "Gateway API + ALB, Karpenter autoscaling, EBS-backed StatefulSets, Fluent Bit → CloudWatch.",
     tags: ["EKS", "Karpenter", "Helm"],
+  },
+  {
+    repo: "pawfeed-smart-pet-feeder", kind: "Full-stack · QA", cat: "web", size: "wide", live: "https://pawfeed-smart-pet-feeder.vercel.app",
+    desc: "Smart pet feeder web app and installable PWA, covered by Playwright automation with Allure reports and CI/CD to Vercel.",
+    tags: ["PWA", "Playwright", "Allure", "Vercel"],
   },
   {
     repo: "aws-bedrock-customer-support-flow", kind: "GenAI · Flows", cat: "agents cloud", size: "wide",
@@ -442,7 +448,7 @@ const SH = {
       if (!arg) return `<span class="m">usage: open &lt;project&gt;</span>`;
       const links = { github: "https://github.com/n0zzzy", linkedin: "https://www.linkedin.com/in/russelcarlo" };
       const p = PROJECTS.find((x) => x.repo.includes(arg.toLowerCase()));
-      const url = links[arg] || (p && GH + p.repo);
+      const url = links[arg] || (p && (p.private ? p.live : GH + p.repo));
       if (!url) return `<span class="c">not found:</span> ${esc(arg)}`;
       window.open(url, "_blank", "noopener");
       return `<span class="g">opening</span> <a href="${url}" target="_blank" rel="noopener">${url}</a>`;
@@ -595,6 +601,49 @@ async function ghStatus() {
     el.innerHTML = `shipping · last push <b>${ago} ago</b> on GitHub`;
   } catch { /* keep the static tagline */ }
 }
+
+/* ---------- live CI: the gates above are real GitHub Actions jobs ---------- */
+const REPO_API = "https://api.github.com/repos/n0zzzy/russelcarlo-portfolio/actions";
+async function ciStatus() {
+  try {
+    let data = JSON.parse(sessionStorage.getItem("ci-run") || "null");
+    if (!data) {
+      const runs = await fetch(`${REPO_API}/runs?branch=main&event=push&per_page=1`).then((r) => r.ok ? r.json() : null);
+      const run = runs?.workflow_runs?.[0];
+      if (!run) return;
+      const jobs = await fetch(run.jobs_url).then((r) => r.ok ? r.json() : null);
+      data = {
+        n: run.run_number, sha: run.head_sha.slice(0, 7), url: run.html_url, at: run.updated_at, status: run.status, conclusion: run.conclusion,
+        jobs: Object.fromEntries((jobs?.jobs || []).map((j) => [j.name, j.status === "completed" ? j.conclusion : j.status])),
+      };
+      sessionStorage.setItem("ci-run", JSON.stringify(data)); // 60 req/h unauthenticated, so once per visit
+    }
+    $$(".ci__gates [data-job]").forEach((li) => {
+      const state = data.jobs[li.dataset.job];
+      const pill = $("i", li);
+      if (!state || state === "success") {
+        if (li.dataset.job === "production" && state === "success") { pill.className = "ok"; pill.textContent = "approved ✓"; }
+        return; // keep the measured numbers
+      }
+      const [cls, text] = state === "failure" ? ["bad", "fail"]
+        : state === "waiting" ? ["wait", "awaiting me"]
+        : state === "skipped" || state === "cancelled" ? ["wait", state]
+        : ["run", "running…"];
+      pill.className = cls;
+      pill.textContent = text;
+    });
+    const mins = Math.max(1, Math.round((Date.now() - new Date(data.at)) / 60000));
+    const ago = mins < 60 ? `${mins}m` : mins < 1440 ? `${Math.round(mins / 60)}h` : `${Math.round(mins / 1440)}d`;
+    const dot = data.status !== "completed" ? "run" : data.conclusion === "success" ? "" : "bad";
+    const el = $("#ci-live");
+    el.innerHTML = `<span class="dot ${dot}"></span>live · run <a href="${esc(data.url)}">#${data.n}</a> on <code>${esc(data.sha)}</code> · ${ago} ago`;
+    el.hidden = false;
+  } catch { /* keep the static numbers */ }
+}
+// only ask GitHub when someone actually scrolls to the gates
+new IntersectionObserver((entries, io) => {
+  if (entries.some((e) => e.isIntersecting)) { io.disconnect(); ciStatus(); }
+}, { rootMargin: "200px" }).observe($("#ci"));
 
 /* ---------- polish: progress, spotlight, count-up, mobile menu ---------- */
 addEventListener("scroll", () => {

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Case study: Linaw, a privacy-first AI safe space — Russel Carlo</title>
+  <meta name="description" content="How our team built Linaw for the EdTek Con 2026 AI Hackathon (4th place): an AI companion for students where safety checks run locally first, names are masked in the browser, and nothing is ever stored." />
+  <meta property="og:title" content="Case study: Linaw — Your Safe Space" />
+  <meta property="og:description" content="4th place, EdTek Con 2026 AI Hackathon · local crisis check before any AI call · names masked in the browser · zero storage." />
+  <meta property="og:image" content="https://russelcarlo.vercel.app/assets/og.png" />
+  <link rel="canonical" href="https://russelcarlo.vercel.app/linaw" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // apply saved theme before paint to avoid a flash
+    (function () {
+      var t = localStorage.getItem("theme") || "system";
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+</head>
+<body class="case">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="nav is-scrolled">
+    <div class="wrap nav__inner">
+      <a class="brand" href="/" aria-label="Back to russelcarlo.vercel.app">
+        <img class="brand__mark" src="assets/favicon.svg" alt="" />
+        <span>n0zzzy</span>
+      </a>
+      <div class="nav__actions">
+        <a class="btn btn--small btn--ghost" href="/#work">← All work</a>
+        <a class="btn btn--small btn--primary" href="https://antibullying-xi.vercel.app">Try Linaw ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="case__hero">
+      <div class="wrap">
+        <p class="kicker">~/work/linaw</p>
+        <h1>An AI companion for students, <span class="accent">where safety runs before the AI does.</span></h1>
+        <p class="lede">Linaw ("clarity") helps college students make sense of uncomfortable group dynamics: being left on seen in the group chat, unfair workload in an org, jokes that might not be jokes. It validates feelings without accusing anyone, drafts calm replies, and lets students rehearse the hard conversation in a private sandbox.</p>
+        <ul class="case__facts">
+          <li><b>4th</b><span>place, EdTek Con 2026 AI Hackathon</span></li>
+          <li><b>0</b><span>stories stored (no database, no localStorage)</span></li>
+          <li><b>100%</b><span>local crisis check, before any AI call</span></li>
+          <li><b>EN · FIL</b><span>bilingual, Taglish understood</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section case__body">
+      <div class="wrap case__grid">
+        <aside class="case__toc">
+          <p class="kicker">contents</p>
+          <a href="#problem">01 · The problem</a>
+          <a href="#rules">02 · The hard rules</a>
+          <a href="#architecture">03 · Architecture</a>
+          <a href="#guardrails">04 · Guardrails</a>
+          <a href="#role">05 · What I built</a>
+          <a href="#lessons">06 · What I took away</a>
+        </aside>
+
+        <article class="prose">
+          <h2 id="problem">The problem</h2>
+          <p>Most students who feel excluded or pressured by classmates never talk to anyone, because they can't tell whether it's "serious enough", and they don't want to get anyone in trouble. A generic chatbot is the wrong tool here: it might store their story, repeat a real name back to a server, or confidently call someone a bully.</p>
+          <p>We built Linaw for the <b>EdTek Con 2026 AI Hackathon</b>, representing NU Fairview, and placed <b>4th</b>.</p>
+
+          <h2 id="rules">The hard rules</h2>
+          <p>Before writing any feature, we wrote the rules the AI could never break. Every feature had to fit inside them:</p>
+          <ul>
+            <li><b>Never accuse.</b> No guilt, no punitive reports, no retaliation. Results are a perspective, not a verdict.</li>
+            <li><b>Store nothing.</b> State lives only in memory. No database, no <code>localStorage</code>, no <code>sessionStorage</code>.</li>
+            <li><b>Mask names before anything leaves the device.</b> Only the masked story is ever analyzed.</li>
+            <li><b>Safety first, locally.</b> Crisis language routes straight to the NCMH 1553 hotline, without asking a model.</li>
+            <li><b>Quick Exit everywhere.</b> Press <kbd>Esc</kbd> on any screen: memory is wiped and the tab jumps to a random Wikipedia page.</li>
+          </ul>
+
+          <h2 id="architecture">Architecture</h2>
+          <p>Linaw is a client-side React + TypeScript app with a hybrid engine. By default it runs <b>fully offline</b> with a deterministic local engine. With an API key, a Claude agent takes over the reasoning, but it only sees masked text, and any failure falls back to the local engine.</p>
+          <ol class="case__steps">
+            <li><b>Check-in</b> → situation chips: where, who, how often, what behavior</li>
+            <li><b>Story</b> → typed or dictated in English, Filipino, or Taglish, masked on every keystroke</li>
+            <li class="is-human"><b>👤 Student review</b> → the student sees the masked preview and taps to fix any missed name</li>
+            <li><b>Local safety gate</b> → crisis keywords end the flow here and show hotlines (zero network calls)</li>
+            <li><b>Agent loop</b> → the model calls local tools (classify pattern, find support, draft message), max 4 turns</li>
+            <li><b>Output guardrails</b> → every AI field is checked for names, blame, or retaliation; if it fails, the local text is used instead</li>
+            <li><b>Results</b> → clarity meter, calm and firm drafts, an anonymized counselor brief, and the Practice Arena</li>
+          </ol>
+
+          <h2 id="guardrails">Guardrails I'm proud of</h2>
+          <table class="roles case__table">
+            <thead><tr><th>Guardrail</th><th>What it prevents</th></tr></thead>
+            <tbody>
+              <tr><td>scrubPII</td><td>Real names, emails, @handles, PH phone numbers, and student IDs leaving the browser. It understands Filipino markers like <i>si</i>, <i>kay</i>, and <i>sina</i></td></tr>
+              <tr><td>runCheckSafety</td><td>A model being the one to decide whether a student is in danger</td></tr>
+              <tr><td>flag_safety_concern</td><td>The agent missing a crisis: it can stop the loop at any time, and it can only add caution, never remove it</td></tr>
+              <tr><td>verifyEvidence</td><td>The AI putting words in the student's mouth: a quote is kept only if it appears word for word in the story</td></tr>
+              <tr><td>safeAgentText</td><td>Blame, names, or profanity in anything the AI writes back</td></tr>
+              <tr><td>local fallback</td><td>A broken experience when offline, rate-limited, or out of credits</td></tr>
+            </tbody>
+          </table>
+          <p>It's the same pattern I use everywhere: <b>the model proposes, deterministic code verifies</b>, and a human (here, the student) checks what gets sent.</p>
+
+          <h2 id="role">What I built</h2>
+          <p>Linaw was a team build with Brandon Duran. My part:</p>
+          <ul>
+            <li>The check-in gateway with a guided breathing exercise, animated mood cards, and a story clarity check.</li>
+            <li>The Portal Hub and its modules: rights advocate and boundary buddy, with a mascot spotlight per module.</li>
+            <li>Evidence highlights, the incident timeline, the action plan, and the crisis handoff in the results.</li>
+            <li>The <b>EN · FIL toggle</b>: translating the hub, triage steps, results, Practice Arena, and crisis card, plus Filipino sample scenarios.</li>
+            <li>Rehearsal with real messages in the Practice Arena, and the Vercel deploys.</li>
+          </ul>
+
+          <h2 id="lessons">What I took away</h2>
+          <ul>
+            <li><b>Write the "never" list first.</b> The hard rules made every later decision faster.</li>
+            <li><b>Safety can't depend on the model being up.</b> The crisis path works with no network at all.</li>
+            <li><b>Let the user be the last guardrail.</b> No masker catches every name, so the student gets the final say on what is sent.</li>
+            <li><b>Language is accessibility.</b> Many students explain feelings in Taglish, so the app had to understand Taglish too.</li>
+          </ul>
+
+          <div class="case__cta">
+            <a class="btn btn--primary" href="https://antibullying-xi.vercel.app">Try Linaw live ↗</a>
+            <a class="btn btn--ghost" href="/#agentic">Try the harness demo</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <span>© 2026 Russel Carlo · <i>“I have no enemies.”</i></span>
+      <a href="/">← back to russelcarlo.vercel.app</a>
+    </div>
+  </footer>
+</body>
+</html>

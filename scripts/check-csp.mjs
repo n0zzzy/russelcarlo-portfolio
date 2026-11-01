@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 
-const pages = ["index.html", "404.html", "kiro-harness.html"];
+const pages = ["index.html", "404.html", "kiro-harness.html", "linaw.html"];
 const hashes = new Set();
 for (const page of pages) {
   const html = readFileSync(page, "utf8").replace(/\r\n/g, "\n"); // browsers hash LF-normalized text

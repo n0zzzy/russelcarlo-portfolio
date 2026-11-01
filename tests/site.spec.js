@@ -16,6 +16,25 @@ test("loads with no console errors", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("CI gates show the latest real GitHub Actions run", async ({ page }) => {
+  const api = "https://api.github.com/repos/n0zzzy/russelcarlo-portfolio/actions";
+  await page.route(`${api}/runs?**`, (r) => r.fulfill({ json: { workflow_runs: [{
+    run_number: 42, head_sha: "abc1234def", html_url: "https://github.com/n0zzzy/russelcarlo-portfolio/actions/runs/1",
+    updated_at: new Date().toISOString(), status: "waiting", conclusion: null, jobs_url: `${api}/runs/1/jobs`,
+  }] } }));
+  await page.route(`${api}/runs/1/jobs`, (r) => r.fulfill({ json: { jobs: [
+    { name: "guardrails", status: "completed", conclusion: "success" },
+    { name: "tests", status: "completed", conclusion: "success" },
+    { name: "evals", status: "completed", conclusion: "failure" },
+    { name: "production", status: "waiting", conclusion: null },
+  ] } }));
+  await page.goto("/#ci");
+  await expect(page.locator("#ci-live")).toContainText("run #42 on abc1234");
+  await expect(page.locator('[data-job="tests"] i')).toHaveText("45 / 45");
+  await expect(page.locator('[data-job="evals"] i')).toHaveText("fail");
+  await expect(page.locator('[data-job="production"] i')).toHaveText("awaiting me");
+});
+
 test("harness: deploy waits for a human, then ships on approve", async ({ page }) => {
   await page.goto("/#agentic");
   await page.getByRole("button", { name: "Run ▸" }).click();
@@ -51,7 +70,7 @@ test("project filter narrows the grid", async ({ page }) => {
   await page.goto("/#work");
   await page.getByRole("button", { name: "Web & data" }).click();
   const visible = page.locator("#bento .project:not(.is-hidden)");
-  await expect(visible).toHaveCount(2);
+  await expect(visible).toHaveCount(3);
 });
 
 test("theme toggle cycles and persists", async ({ page }) => {
@@ -140,6 +159,14 @@ test("flagship card opens the Kiro case study", async ({ page }) => {
   await expect(page).toHaveURL(/kiro-harness/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Seven AI agents");
   await expect(page.locator(".case__facts li")).toHaveCount(4);
+});
+
+test("Linaw card opens its case study, which links to the live app", async ({ page }) => {
+  await page.goto("/#work");
+  await page.locator('.project[href="/linaw"]').click();
+  await expect(page).toHaveURL(/linaw/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("safety runs before the AI");
+  await expect(page.locator('a[href="https://antibullying-xi.vercel.app"]').first()).toBeVisible();
 });
 
 test("content placeholders stay hidden live, visible in ?draft", async ({ page }) => {

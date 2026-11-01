@@ -165,11 +165,12 @@
             <p>Every change has to pass the same kind of gates I put around agents before it can reach production.</p>
           </div>
           <ul class="ci__gates">
-            <li><b>Guardrails</b><span>HTML validation · CSP hash check</span><i class="ok">pass</i></li>
-            <li><b>Tests</b><span>end-to-end on desktop + mobile</span><i class="ok" id="ci-tests">41 / 41</i></li>
-            <li><b>Evals</b><span>Lighthouse perf · a11y · best practices · SEO</span><i class="ok" id="ci-lh">99 · 100 · 100 · 100</i></li>
-            <li><b>Human gate</b><span>preview deploy → I approve → production</span><i class="wait">manual</i></li>
+            <li data-job="guardrails"><b>Guardrails</b><span>HTML validation · CSP hash · broken links</span><i class="ok">pass</i></li>
+            <li data-job="tests"><b>Tests</b><span>end-to-end on desktop + mobile</span><i class="ok" id="ci-tests">45 / 45</i></li>
+            <li data-job="evals"><b>Evals</b><span>Lighthouse perf · a11y · best practices · SEO</span><i class="ok" id="ci-lh">99 · 100 · 100 · 100</i></li>
+            <li data-job="production"><b>Human gate</b><span>preview deploy → I approve → production</span><i class="wait">manual</i></li>
           </ul>
+          <p class="ci__live" id="ci-live" hidden></p>
         </div>
 
         <div class="next reveal">
