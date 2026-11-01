@@ -26,7 +26,9 @@ jobs:
       - name: Broken-link check
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --root-dir "${{ github.workspace }}" --exclude "linkedin.com" index.html 404.html kiro-harness.html linaw.html resume.html
+          # cleanUrls: /resume is resume.html; our own domain is checked as local files, not the
+          # live site (a new page would 404 there until this very run deploys it)
+          args: --no-progress --root-dir "${{ github.workspace }}" --fallback-extensions html --exclude "linkedin.com" --exclude "russelcarlo.vercel.app" index.html 404.html kiro-harness.html linaw.html resume.html
           fail: true
 
   tests:
