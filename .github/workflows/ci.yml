@@ -15,8 +15,8 @@ jobs:
   guardrails:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run validate
@@ -31,8 +31,8 @@ jobs:
     needs: guardrails
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
@@ -45,7 +45,7 @@ jobs:
     needs: guardrails
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Lighthouse budgets
         uses: treosh/lighthouse-ci-action@v12
         with:
@@ -61,10 +61,16 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: npm i -g vercel@latest
+      - name: Require Vercel secrets
+        run: |
+          [ -n "${{ secrets.VERCEL_TOKEN }}" ] || { echo "::error::VERCEL_TOKEN secret is missing"; exit 1; }
       - id: deploy
-        run: echo "url=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+        # assign first so a failed deploy fails the step (echo "$(...)" would swallow it)
+        run: |
+          url=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> "$GITHUB_OUTPUT"
       - run: echo "Preview → ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
 
   production:
@@ -79,6 +85,6 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: npm i -g vercel@latest
       - run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
