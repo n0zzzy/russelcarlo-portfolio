@@ -9,9 +9,12 @@
 window.CONTENT = {
   // ~/logs: short build logs / blog posts. `url` can point to LinkedIn, Medium, dev.to, etc.
   logs: [
-    { date: "2026-10", title: "What I learned putting a human gate in front of seven AI agents", excerpt: "Why the approve-deploy step mattered more than the prompts.", url: "#", tags: ["harness", "kiro"], placeholder: true },
-    { date: "2026-09", title: "Haiku for routing, Sonnet for thinking: picking models per agent role", excerpt: "Cost, latency, and where reasoning actually pays off.", url: "#", tags: ["models", "cost"], placeholder: true },
-    { date: "2026-08", title: "How team EPIC 2 won Rank 1 at the AWS QuickQuest Finale", excerpt: "From a messy checklist to an AI release partner in one build night.", url: "#", tags: ["hackathon", "aws"], placeholder: true },
+    { date: "2026-11", title: "Harnessing my own portfolio like an agent", excerpt: "Guardrails, 45 end-to-end tests, Lighthouse evals, and a human approval gate before anything reaches production.", url: "https://github.com/n0zzzy/russelcarlo-portfolio", tags: ["ci/cd", "devops"] },
+    { date: "2026-10", title: "Linaw: an AI safe space where safety runs before the AI", excerpt: "Local crisis check, names masked in the browser, zero storage. 4th place at EdTek Con 2026.", url: "/linaw", tags: ["case study", "safety"] },
+    { date: "2026-10", title: "4th place at the EdTek Con 2026 AI Hackathon", excerpt: "Representing NU Fairview with Linaw, a privacy-first AI anti-bullying companion.", url: "https://www.linkedin.com/feed/update/urn:li:activity:7518483801849651200/", tags: ["hackathon", "linkedin"] },
+    { date: "2026-09", title: "Seven AI agents, one orchestrator, and a human gate", excerpt: "How permission boundaries and an APPROVE DEPLOY step took a plain-English request to a live AWS app.", url: "/kiro-harness", tags: ["case study", "kiro"] },
+    { date: "2026-09", title: "2nd place at the Kiro Agent Orchestration Hackathon", excerpt: "AI Playgrounds at eCloudvalley Philippines, BGC.", url: "https://www.linkedin.com/feed/update/urn:li:activity:7502561620263481344/", tags: ["hackathon", "linkedin"] },
+    { date: "2026-08", title: "Rank 1 overall at the AWS QuickQuest Finale", excerpt: "Team EPIC 2's AI deployment-checklist bot on Amazon Quick Suite, plus Best Technical Solution.", url: "https://www.linkedin.com/feed/update/urn:li:activity:7496833769048276992/", tags: ["hackathon", "aws"] },
   ],
 
   // ~/history: experience, orgs, roles. Newest first.

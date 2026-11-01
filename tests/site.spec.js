@@ -171,11 +171,12 @@ test("Linaw card opens its case study, which links to the live app", async ({ pa
 
 test("content placeholders stay hidden live, visible in ?draft", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("#logs")).toBeHidden();
+  await expect(page.locator("#logs")).toBeVisible();
+  await expect(page.locator("#logs .log")).toHaveCount(6);
+  await expect(page.locator("#reviews")).toBeHidden();
   await expect(page.locator("#uses")).toBeVisible();
   await expect(page.locator("#uses-body")).not.toContainText("TODO");
   await page.goto("/?draft");
-  await expect(page.locator("#logs")).toBeVisible();
   await expect(page.locator("#reviews .draft").first()).toBeVisible();
   await expect(page.locator("#uses-body")).toContainText("TODO");
 });
