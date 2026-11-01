@@ -30,9 +30,31 @@ test("CI gates show the latest real GitHub Actions run", async ({ page }) => {
   ] } }));
   await page.goto("/#ci");
   await expect(page.locator("#ci-live")).toContainText("run #42 on abc1234");
-  await expect(page.locator('[data-job="tests"] i')).toHaveText("45 / 45");
+  await expect(page.locator('[data-job="tests"] i')).toHaveText("49 / 49");
   await expect(page.locator('[data-job="evals"] i')).toHaveText("fail");
   await expect(page.locator('[data-job="production"] i')).toHaveText("awaiting me");
+});
+
+test("Guardrail Rush: score with clicks and arrow keys, then the shift ends", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/#play");
+  await page.locator("#rush-start").click();
+  const correct = () => page.evaluate(() => RUSH_DECK.find((d) => d.req === document.querySelector("#rush-req").textContent).act);
+  await page.locator(`.rush__btn[data-act="${await correct()}"]`).click();
+  await expect(page.locator("#rush-score")).toHaveText("100");
+  await page.clock.runFor(500);
+  await page.keyboard.press({ block: "ArrowLeft", escalate: "ArrowDown", allow: "ArrowRight" }[await correct()]);
+  await expect(page.locator("#rush-score")).toHaveText("200");
+  await page.clock.fastForward(31000);
+  await page.clock.runFor(100);
+  await expect(page.locator("#rush-end")).toBeVisible();
+  await expect(page.locator("#rush-stats")).toContainText("2/2 correct");
+  await expect(page.locator("#rush-best")).toHaveText("200");
+});
+
+test("activity shows the contribution snake", async ({ page }) => {
+  await page.goto("/#activity");
+  await expect(page.locator(".snake img")).toHaveAttribute("src", /github-snake-dark\.svg$/);
 });
 
 test("harness: deploy waits for a human, then ships on approve", async ({ page }) => {

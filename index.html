@@ -58,6 +58,7 @@
       <nav class="nav__links" aria-label="Primary">
         <a href="#how">How I work</a>
         <a href="#agentic">Agentic</a>
+        <a href="#play">Play</a>
         <a href="#work">Work</a>
         <a href="#wins">Wins</a>
         <a href="#stack">Stack</a>
@@ -166,7 +167,7 @@
           </div>
           <ul class="ci__gates">
             <li data-job="guardrails"><b>Guardrails</b><span>HTML validation · CSP hash · broken links</span><i class="ok">pass</i></li>
-            <li data-job="tests"><b>Tests</b><span>end-to-end on desktop + mobile</span><i class="ok" id="ci-tests">45 / 45</i></li>
+            <li data-job="tests"><b>Tests</b><span>end-to-end on desktop + mobile</span><i class="ok" id="ci-tests">49 / 49</i></li>
             <li data-job="evals"><b>Evals</b><span>Lighthouse perf · a11y · best practices · SEO</span><i class="ok" id="ci-lh">99 · 100 · 100 · 100</i></li>
             <li data-job="production"><b>Human gate</b><span>preview deploy → I approve → production</span><i class="wait">manual</i></li>
           </ul>
@@ -276,6 +277,59 @@
       </div>
     </section>
 
+    <!-- PLAY: Guardrail Rush -->
+    <section class="section" id="play">
+      <div class="wrap">
+        <header class="section__head reveal">
+          <p class="kicker">~/play</p>
+          <h2>Can you be the guardrail? <span class="accent">30 seconds.</span></h2>
+          <p class="section__sub">Requests are hitting an AI agent. Allow the safe ones, block attacks and leaks, and escalate risky actions to a human. This is the judgment I build into every harness.</p>
+        </header>
+
+        <div class="rush reveal" id="rush">
+          <div class="rush__hud">
+            <span>score <b id="rush-score">0</b></span>
+            <span>combo <b id="rush-combo">×1</b></span>
+            <span>time <b id="rush-time">30</b>s</span>
+            <span>best <b id="rush-best">0</b></span>
+          </div>
+          <div class="rush__bar" aria-hidden="true"><i id="rush-timebar"></i></div>
+
+          <div class="rush__stage">
+            <div class="rush__intro" id="rush-intro">
+              <ul class="rush__rules">
+                <li><b class="t-block">Block</b>prompt injection, secret or PII leaks, destructive asks</li>
+                <li><b class="t-esc">Escalate</b>legit but high-risk: big refunds, prod deploys, access grants</li>
+                <li><b class="t-allow">Allow</b>safe, in-policy, read-only work</li>
+              </ul>
+              <button type="button" class="btn btn--primary" id="rush-start">Start the shift ▸</button>
+            </div>
+            <article class="rush__card" id="rush-card" hidden>
+              <p class="rush__src" id="rush-src"></p>
+              <p class="rush__req" id="rush-req"></p>
+            </article>
+            <div class="rush__end" id="rush-end" hidden>
+              <p class="kicker">shift over</p>
+              <p class="rush__rank" id="rush-rank"></p>
+              <p class="rush__stats" id="rush-stats"></p>
+              <ul class="rush__misses" id="rush-misses"></ul>
+              <div class="cta">
+                <button type="button" class="btn btn--primary" id="rush-again">Play again ↻</button>
+                <button type="button" class="btn btn--ghost" id="rush-share">Share score ⧉</button>
+              </div>
+            </div>
+          </div>
+
+          <p class="rush__feedback" id="rush-feedback" aria-live="polite"></p>
+          <div class="rush__actions">
+            <button type="button" class="rush__btn t-block" data-act="block" disabled><kbd>←</kbd> Block</button>
+            <button type="button" class="rush__btn t-esc" data-act="escalate" disabled><kbd>↓</kbd> Escalate</button>
+            <button type="button" class="rush__btn t-allow" data-act="allow" disabled><kbd>→</kbd> Allow</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- WORK -->
     <section class="section" id="work">
       <div class="wrap">
@@ -367,6 +421,20 @@
       </div>
     </section>
 
+    <!-- ACTIVITY -->
+    <section class="section" id="activity">
+      <div class="wrap">
+        <header class="section__head reveal">
+          <p class="kicker">~/activity</p>
+          <h2>What I've been shipping</h2>
+          <p class="section__sub">My GitHub contributions for the last year, regenerated daily by a GitHub Action on my profile repo.</p>
+        </header>
+        <a class="snake reveal" href="https://github.com/n0zzzy">
+          <img src="https://raw.githubusercontent.com/n0zzzy/n0zzzy/main/generated/github-snake-dark.svg" alt="A red snake eating through Russel's GitHub contribution graph for the last year" width="880" height="192" loading="lazy" decoding="async" />
+        </a>
+      </div>
+    </section>
+
     <!-- CONTACT -->
     <section class="section contact" id="contact">
       <div class="wrap contact__inner reveal">
@@ -390,7 +458,7 @@
   </footer>
 
   <nav class="sheet" id="sheet" hidden aria-label="Mobile">
-    <a href="#how">~/how-i-work</a><a href="#agentic">~/agentic</a><a href="#work">~/work</a><a href="#wins">~/track-record</a><a href="#stack">~/stack</a><a href="#contact">~/contact</a>
+    <a href="#how">~/how-i-work</a><a href="#agentic">~/agentic</a><a href="#play">~/play</a><a href="#work">~/work</a><a href="#wins">~/track-record</a><a href="#stack">~/stack</a><a href="#contact">~/contact</a>
   </nav>
 
   <!-- TERMINAL -->

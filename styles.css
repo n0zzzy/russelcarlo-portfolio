@@ -618,3 +618,48 @@ body.eclipse #wolf circle[fill="url(#mg)"], body.eclipse #wolf rect[fill="url(#m
 body.eclipse #wolf { animation: quake .5s ease-in-out 3; }
 body.eclipse .hero__grid { filter: brightness(2.2); }
 @keyframes quake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+/* ---------- play: Guardrail Rush ---------- */
+.rush { --block: #dc2626; --esc: #d97706; --allow: #16a34a; max-width: 820px; margin: 0 auto; padding: 22px; border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px); background: var(--surface); box-shadow: var(--shadow); }
+.t-block { --c: var(--block); } .t-esc { --c: var(--esc); } .t-allow { --c: var(--allow); }
+.rush__hud { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--muted); font: 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.rush__hud b { color: var(--text); font-size: 16px; letter-spacing: 0; }
+.rush__bar { height: 4px; margin: 14px 0 18px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.rush__bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(1); }
+.rush__stage { display: grid; min-height: 210px; place-items: center; }
+.rush__rules { display: grid; gap: 10px; margin: 0 0 20px; padding: 0; list-style: none; font-size: 15px; }
+.rush__rules b { display: inline-block; min-width: 86px; margin-right: 10px; color: var(--c); font: 700 12px var(--mono); text-transform: uppercase; }
+.rush__intro { text-align: left; }
+.rush__card { width: 100%; padding: 22px 24px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
+.rush__card.is-in { animation: rush-in .22s var(--ease); }
+.rush__card.is-ok { border-left-color: var(--allow); }
+.rush__card.is-bad { border-left-color: var(--block); animation: quake .3s ease-in-out; }
+@keyframes rush-in { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+.rush__src { margin: 0 0 8px; color: var(--muted); font: 12px var(--mono); }
+.rush__req { margin: 0; font-size: clamp(18px, 2.4vw, 22px); font-weight: 600; line-height: 1.4; }
+.rush__feedback { min-height: 22px; margin: 14px 0 12px; color: var(--muted); font: 13px var(--mono); text-align: center; }
+.rush__feedback .ok { color: var(--allow); } .rush__feedback .bad { color: var(--block); }
+.rush__actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.rush__btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 10px; border: 1px solid var(--c); border-radius: 12px; background: transparent; color: var(--c); font: 700 15px inherit; cursor: pointer; transition: background .15s, transform .1s; }
+.rush__btn:hover:not(:disabled), .rush__btn.is-hit { background: color-mix(in srgb, var(--c) 14%, transparent); }
+.rush__btn:active:not(:disabled) { transform: scale(.97); }
+.rush__btn:disabled { opacity: .4; cursor: not-allowed; }
+.rush__btn kbd { padding: 1px 6px; border: 1px solid currentColor; border-radius: 5px; font: 12px var(--mono); }
+.rush__end { width: 100%; text-align: center; }
+.rush__rank { margin: 0; font-size: clamp(26px, 3.6vw, 36px); font-weight: 800; letter-spacing: -.02em; }
+.rush__stats { margin: 6px 0 14px; color: var(--muted); font: 13px var(--mono); }
+.rush__misses { display: grid; gap: 6px; max-width: 620px; margin: 0 auto 18px; padding: 0; list-style: none; text-align: left; font-size: 14px; }
+.rush__misses li { padding: 8px 12px; border-radius: 10px; background: var(--surface-2); color: var(--muted); }
+.rush__misses b { color: var(--text); }
+.rush__end .cta { justify-content: center; }
+.rush.is-playing { border-color: var(--accent); }
+@media (max-width: 720px) {
+  .rush { padding: 16px; }
+  .rush__btn kbd { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .rush__card.is-in, .rush__card.is-bad { animation: none; } }
+
+/* ---------- activity ---------- */
+.snake { display: block; padding: 18px; border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px); background: #0d1117; transition: border-color .2s; }
+.snake:hover { border-color: var(--accent); }
+.snake img { display: block; width: 100%; height: auto; }
