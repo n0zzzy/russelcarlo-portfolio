@@ -24,7 +24,7 @@ jobs:
       - name: Broken-link check
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --exclude "linkedin.com" index.html 404.html kiro-harness.html
+          args: --no-progress --root-dir "${{ github.workspace }}" --exclude "linkedin.com" index.html 404.html kiro-harness.html
           fail: true
 
   tests:
