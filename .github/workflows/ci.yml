@@ -1,5 +1,7 @@
 # The site is harnessed like an agent:
 #   guardrails (validate) → tests (e2e) → evals (Lighthouse) → preview → human gate → production
+# Risk-based approval: a push that only touches copy (content.js, docs) still runs every gate,
+# but deploys without waiting for a human. Anything else needs approval on "production".
 name: harness
 
 on:
@@ -24,7 +26,7 @@ jobs:
       - name: Broken-link check
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --root-dir "${{ github.workspace }}" --exclude "linkedin.com" index.html 404.html kiro-harness.html
+          args: --no-progress --root-dir "${{ github.workspace }}" --exclude "linkedin.com" index.html 404.html kiro-harness.html linaw.html
           fail: true
 
   tests:
@@ -52,9 +54,35 @@ jobs:
           configPath: ./lighthouserc.json
           uploadArtifacts: true
 
+  risk:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      level: ${{ steps.classify.outputs.level }}
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - id: classify
+        # anything unknown (new branch, force-push, empty diff) is high risk
+        run: |
+          before="${{ github.event.before }}"
+          level=high
+          if git cat-file -e "$before^{commit}" 2>/dev/null; then
+            files=$(git diff --name-only "$before" "${{ github.sha }}")
+            printf '%s\n' "$files"
+            if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qvE '^(content\.js|[^/]+\.md|docs/.+)$'; then
+              level=low
+            fi
+          fi
+          echo "level=$level" >> "$GITHUB_OUTPUT"
+          echo "Risk: **$level** ($([ $level = low ] && echo 'content only, auto-deploy' || echo 'needs human approval'))" >> "$GITHUB_STEP_SUMMARY"
+
   preview:
     needs: [tests, evals]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     outputs:
       url: ${{ steps.deploy.outputs.url }}
     env:
@@ -72,14 +100,22 @@ jobs:
           url=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
       - run: echo "Preview → ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Comment preview URL on the PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} -R ${{ github.repository }} --edit-last --create-if-none --body "🐺 **Preview ready:** ${{ steps.deploy.outputs.url }}
+
+          Passed guardrails, tests, and Lighthouse evals for \`${{ github.event.pull_request.head.sha }}\`."
 
   production:
-    # human in the loop: the "production" environment requires a reviewer to approve
+    # human in the loop: "production" requires a reviewer; "production-content" (low risk) does not
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: preview
+    needs: [preview, risk]
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: ${{ needs.risk.outputs.level == 'low' && 'production-content' || 'production' }}
       url: https://russelcarlo.vercel.app
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
